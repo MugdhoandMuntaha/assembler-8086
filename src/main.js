@@ -97,6 +97,31 @@ monaco.editor.defineTheme('emu8086-dark', {
   }
 });
 
+monaco.editor.defineTheme('emu8086-light', {
+  base: 'vs',
+  inherit: true,
+  rules: [
+    { token: 'comment', foreground: '64748b', fontStyle: 'italic' },
+    { token: 'keyword', foreground: '0284c7', fontStyle: 'bold' },
+    { token: 'keyword.directive', foreground: '7c3aed', fontStyle: 'bold' },
+    { token: 'variable', foreground: '16a34a' },
+    { token: 'number', foreground: 'd97706' },
+    { token: 'string', foreground: '059669' },
+    { token: 'type.identifier', foreground: 'e11d48', fontStyle: 'bold' },
+    { token: 'identifier', foreground: '0f172a' }
+  ],
+  colors: {
+    'editor.background': '#ffffff',
+    'editor.foreground': '#0f172a',
+    'editorLineNumber.foreground': '#94a3b8',
+    'editorLineNumber.activeForeground': '#0284c7',
+    'editor.lineHighlightBackground': '#f1f5f988',
+    'editorCursor.foreground': '#0284c7',
+    'editor.selectionBackground': '#0284c726',
+    'editorGutter.background': '#f8fafc'
+  }
+});
+
 // Application Instances
 const memory = new Memory();
 const registers = new Registers();
@@ -162,7 +187,7 @@ function initMonacoEditor() {
   monacoEditor = monaco.editor.create(container, {
     value: DEFAULT_CODE,
     language: 'x86asm',
-    theme: 'emu8086-dark',
+    theme: 'emu8086-light',
     fontFamily: "'Fira Code', Consolas, monospace",
     fontSize: 13,
     lineHeight: 20,
@@ -219,7 +244,13 @@ function setupEventListeners() {
 
   // Theme select
   themeSelect.addEventListener('change', (e) => {
-    document.body.className = e.target.value;
+    const val = e.target.value;
+    document.body.className = val;
+    if (val === 'theme-light') {
+      monaco.editor.setTheme('emu8086-light');
+    } else {
+      monaco.editor.setTheme('emu8086-dark');
+    }
   });
 
   // Display Format Toggle
