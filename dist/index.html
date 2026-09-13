@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>emu8086 - 8086 Microprocessor Emulator & Terminal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script type="module" crossorigin src="/assets/index-DAtYF_Lc.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-Wor65o54.css">
+</head>
+<body class="theme-cyber">
+  <div id="app">
+    <!-- Top Control Header -->
+    <header class="app-header">
+      <div class="logo-group">
+        <div class="cpu-chip-icon">
+          <span>8086</span>
+        </div>
+        <div class="brand">
+          <h1>emu8086</h1>
+        </div>
+      </div>
+
+      <div class="toolbar">
+        <div class="tool-group controls-group">
+          <button id="btn-assemble" class="btn btn-secondary" title="Assemble & Reset CPU">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2v6h-6M3 12a9 9 0 0 1 15-6.7L21 8M3 22v-6h6M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
+            Assemble
+          </button>
+          <button id="btn-run" class="btn btn-primary" title="Run Program (F5)">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            Run
+          </button>
+          <button id="btn-step" class="btn btn-accent" title="Step One Instruction (F8)">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19" stroke="currentColor" stroke-width="3"/></svg>
+            Step
+          </button>
+          <button id="btn-pause" class="btn btn-warning" title="Pause Execution">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+            Pause
+          </button>
+          <button id="btn-stop" class="btn btn-danger" title="Stop & Reset">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><rect x="5" y="5" width="14" height="14"/></svg>
+            Reset
+          </button>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="tool-group speed-group">
+          <label for="speed-range">Speed:</label>
+          <input type="range" id="speed-range" min="0" max="500" step="10" value="100">
+          <span id="speed-label" class="mono">100ms</span>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="tool-group layout-group">
+          <label>Layout:</label>
+          <button id="btn-reset-layout" class="btn btn-xs btn-secondary" title="Reset all panels to default layout">Reset</button>
+          <button id="btn-float-all" class="btn btn-xs btn-secondary" title="Pop out all panels into floating windows">Float All</button>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="tool-group">
+          <select id="theme-select" class="select-input small">
+            <option value="theme-cyber">Cyber Dark</option>
+            <option value="theme-amber">CRT Amber</option>
+            <option value="theme-matrix">Matrix Green</option>
+          </select>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Resizable & Pop-up able Content Layout -->
+    <main class="main-content" id="main-container">
+      <!-- Left: Code Editor -->
+      <section class="panel editor-panel" id="panel-editor">
+        <div class="panel-header" data-panel-id="panel-editor">
+          <div class="panel-title">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+            8086 Assembly Source Code
+          </div>
+          <div class="panel-header-right">
+            <span id="cpu-state-badge" class="badge state-stopped">STOPPED</span>
+            <div class="panel-actions">
+              <button class="panel-action-btn btn-float" data-target="panel-editor" title="Pop out into floating window">
+                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              </button>
+              <button class="panel-action-btn btn-maximize" data-target="panel-editor" title="Maximize panel">
+                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="editor-container" id="monaco-editor-container"></div>
+
+        <div id="error-console" class="error-console hidden">
+          <span class="error-icon">⚠️</span>
+          <span id="error-message">Error message...</span>
+        </div>
+      </section>
+
+      <!-- Gutter Resizer 1 -->
+      <div class="gutter-resizer" id="gutter-1" title="Drag to resize columns">
+        <div class="gutter-line"></div>
+      </div>
+
+      <!-- Center: CPU State & Memory -->
+      <section class="panel cpu-panel" id="panel-cpu">
+        <div class="panel-header" data-panel-id="panel-cpu">
+          <div class="panel-title">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="15" x2="23" y2="15"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="15" x2="4" y2="15"/></svg>
+            CPU Registers & Memory
+          </div>
+          <div class="panel-header-right">
+            <div class="format-toggle">
+              <button class="fmt-btn active" data-fmt="HEX">HEX</button>
+              <button class="fmt-btn" data-fmt="DEC">DEC</button>
+              <button class="fmt-btn" data-fmt="BIN">BIN</button>
+            </div>
+            <div class="panel-actions">
+              <button class="panel-action-btn btn-float" data-target="panel-cpu" title="Pop out into floating window">
+                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              </button>
+              <button class="panel-action-btn btn-maximize" data-target="panel-cpu" title="Maximize panel">
+                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="cpu-body">
+          <!-- Registers Grid -->
+          <div class="registers-section">
+            <h3 class="section-title">16-bit / 8-bit Registers</h3>
+            <div class="registers-grid">
+              <!-- AX -->
+              <div class="reg-card">
+                <div class="reg-header">AX</div>
+                <div class="reg-split">
+                  <div class="sub-reg">
+                    <span class="sub-label">AH</span>
+                    <span id="reg-AH" class="reg-val mono">00</span>
+                  </div>
+                  <div class="sub-reg">
+                    <span class="sub-label">AL</span>
+                    <span id="reg-AL" class="reg-val mono">00</span>
+                  </div>
+                </div>
+                <div class="reg-full mono" id="reg-AX">0000</div>
+              </div>
+
+              <!-- BX -->
+              <div class="reg-card">
+                <div class="reg-header">BX</div>
+                <div class="reg-split">
+                  <div class="sub-reg">
+                    <span class="sub-label">BH</span>
+                    <span id="reg-BH" class="reg-val mono">00</span>
+                  </div>
+                  <div class="sub-reg">
+                    <span class="sub-label">BL</span>
+                    <span id="reg-BL" class="reg-val mono">00</span>
+                  </div>
+                </div>
+                <div class="reg-full mono" id="reg-BX">0000</div>
+              </div>
+
+              <!-- CX -->
+              <div class="reg-card">
+                <div class="reg-header">CX</div>
+                <div class="reg-split">
+                  <div class="sub-reg">
+                    <span class="sub-label">CH</span>
+                    <span id="reg-CH" class="reg-val mono">00</span>
+                  </div>
+                  <div class="sub-reg">
+                    <span class="sub-label">CL</span>
+                    <span id="reg-CL" class="reg-val mono">00</span>
+                  </div>
+                </div>
+                <div class="reg-full mono" id="reg-CX">0000</div>
+              </div>
+
+              <!-- DX -->
+              <div class="reg-card">
+                <div class="reg-header">DX</div>
+                <div class="reg-split">
+                  <div class="sub-reg">
+                    <span class="sub-label">DH</span>
+                    <span id="reg-DH" class="reg-val mono">00</span>
+                  </div>
+                  <div class="sub-reg">
+                    <span class="sub-label">DL</span>
+                    <span id="reg-DL" class="reg-val mono">00</span>
+                  </div>
+                </div>
+                <div class="reg-full mono" id="reg-DX">0000</div>
+              </div>
+
+              <!-- Pointers & Indexes -->
+              <div class="reg-card single">
+                <span class="reg-label">SI</span>
+                <span id="reg-SI" class="reg-val mono">0000</span>
+              </div>
+              <div class="reg-card single">
+                <span class="reg-label">DI</span>
+                <span id="reg-DI" class="reg-val mono">0000</span>
+              </div>
+              <div class="reg-card single">
+                <span class="reg-label">BP</span>
+                <span id="reg-BP" class="reg-val mono">0000</span>
+              </div>
+              <div class="reg-card single highlight-sp">
+                <span class="reg-label">SP</span>
+                <span id="reg-SP" class="reg-val mono">0100</span>
+              </div>
+
+              <!-- Segments & IP -->
+              <div class="reg-card single highlight-ip">
+                <span class="reg-label">IP</span>
+                <span id="reg-IP" class="reg-val mono">0000</span>
+              </div>
+              <div class="reg-card single">
+                <span class="reg-label">CS</span>
+                <span id="reg-CS" class="reg-val mono">0700</span>
+              </div>
+              <div class="reg-card single">
+                <span class="reg-label">DS</span>
+                <span id="reg-DS" class="reg-val mono">0710</span>
+              </div>
+              <div class="reg-card single">
+                <span class="reg-label">SS</span>
+                <span id="reg-SS" class="reg-val mono">0720</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Status Flags -->
+          <div class="flags-section">
+            <h3 class="section-title">Status Flags</h3>
+            <div class="flags-bar">
+              <div class="flag-chip" id="flag-OF" title="Overflow Flag">OF: <span>0</span></div>
+              <div class="flag-chip" id="flag-DF" title="Direction Flag">DF: <span>0</span></div>
+              <div class="flag-chip" id="flag-IF" title="Interrupt Flag">IF: <span>1</span></div>
+              <div class="flag-chip" id="flag-TF" title="Trap Flag">TF: <span>0</span></div>
+              <div class="flag-chip" id="flag-SF" title="Sign Flag">SF: <span>0</span></div>
+              <div class="flag-chip" id="flag-ZF" title="Zero Flag">ZF: <span>0</span></div>
+              <div class="flag-chip" id="flag-AF" title="Aux Carry Flag">AF: <span>0</span></div>
+              <div class="flag-chip" id="flag-PF" title="Parity Flag">PF: <span>0</span></div>
+              <div class="flag-chip" id="flag-CF" title="Carry Flag">CF: <span>0</span></div>
+            </div>
+          </div>
+
+          <!-- Memory Inspector -->
+          <div class="memory-section">
+            <div class="memory-header">
+              <h3 class="section-title">Memory Viewer (RAM)</h3>
+              <div class="mem-jump">
+                <input type="text" id="mem-segment-input" class="mono" value="0710" placeholder="DS">
+                <span>:</span>
+                <input type="text" id="mem-offset-input" class="mono" value="0000" placeholder="Offset">
+                <button id="btn-mem-jump" class="btn btn-xs">Jump</button>
+              </div>
+            </div>
+
+            <div class="memory-table-wrapper">
+              <table id="memory-table">
+                <thead>
+                  <tr>
+                    <th>Address</th>
+                    <th>00</th><th>01</th><th>02</th><th>03</th>
+                    <th>04</th><th>05</th><th>06</th><th>07</th>
+                    <th>ASCII</th>
+                  </tr>
+                </thead>
+                <tbody id="memory-table-body">
+                  <!-- Populated dynamically -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Gutter Resizer 2 -->
+      <div class="gutter-resizer" id="gutter-2" title="Drag to resize columns">
+        <div class="gutter-line"></div>
+      </div>
+
+      <!-- Right: Interactive DOS Terminal Screen -->
+      <section class="panel terminal-panel" id="panel-terminal">
+        <div class="panel-header" data-panel-id="panel-terminal">
+          <div class="panel-title">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+            Interactive DOS Terminal
+          </div>
+          <div class="panel-header-right">
+            <button id="btn-clear-term" class="btn btn-xs btn-secondary">Clear</button>
+            <div class="panel-actions">
+              <button class="panel-action-btn btn-float" data-target="panel-terminal" title="Pop out into floating window">
+                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              </button>
+              <button class="panel-action-btn btn-maximize" data-target="panel-terminal" title="Maximize panel">
+                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="terminal-wrapper">
+          <div id="terminal-screen" class="terminal-screen">
+            <div class="terminal-welcome">
+              emu8086 Interactive Terminal [DOS INT 21H Emulation]
+              Type assembly code & press Run. Keypresses will be captured here when INT 21H (AH=01h or AH=0Ah) is executed.
+              -------------------------------------------------------------------------------------------------------------
+            </div>
+          </div>
+
+          <div class="terminal-input-bar">
+            <span class="prompt-symbol">&gt;</span>
+            <input type="text" id="terminal-input" placeholder="Terminal input area (disabled when not waiting for input)..." disabled spellcheck="false">
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+</body>
+</html>
