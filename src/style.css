@@ -56,8 +56,8 @@ body.theme-light {
   --text-dim: #94a3b8;
 
   --shadow-main: 0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
-  --term-bg: #0b1120;
-  --term-text: #38bdf8;
+  --term-bg: #ffffff;
+  --term-text: #0f172a;
 
   background-color: var(--bg-primary);
   background-image: 
@@ -152,6 +152,24 @@ body.theme-light .panel-action-btn {
 }
 body.theme-light .panel-action-btn:hover {
   background: rgba(2, 132, 199, 0.12);
+  color: #0284c7;
+}
+
+body.theme-light .terminal-wrapper {
+  background: #ffffff;
+}
+body.theme-light .terminal-screen {
+  color: #0f172a;
+  text-shadow: none;
+}
+body.theme-light .terminal-cursor {
+  background: #0284c7;
+}
+body.theme-light .terminal-cursor.waiting {
+  background: #0284c7;
+  box-shadow: 0 0 8px rgba(2, 132, 199, 0.4);
+}
+body.theme-light .terminal-inline-buffer {
   color: #0284c7;
 }
 
@@ -861,6 +879,12 @@ body {
 .terminal-panel {
   display: flex;
   flex-direction: column;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.terminal-panel.is-waiting-input {
+  border-color: var(--accent-cyan) !important;
+  box-shadow: 0 0 16px var(--accent-cyan-glow) !important;
 }
 
 .terminal-wrapper {
@@ -870,53 +894,72 @@ body {
   background: var(--term-bg);
   padding: 12px;
   font-family: var(--font-mono);
+  position: relative;
+  overflow: hidden;
+  cursor: text;
 }
 
 .terminal-screen {
   flex: 1;
   color: var(--term-text);
   font-size: 0.88rem;
-  line-height: 1.4;
+  line-height: 1.45;
   white-space: pre-wrap;
   word-break: break-all;
   overflow-y: auto;
   text-shadow: 0 0 6px var(--accent-cyan-glow);
-}
-
-.terminal-welcome {
-  color: var(--text-dim);
-  font-size: 0.75rem;
-  margin-bottom: 8px;
-  text-shadow: none;
-}
-
-.terminal-input-bar {
-  margin-top: 8px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  padding-top: 8px;
-}
-
-.prompt-symbol {
-  color: var(--term-text);
-  font-weight: 700;
-}
-
-#terminal-input {
-  flex: 1;
-  background: transparent;
-  border: none;
   outline: none;
-  color: var(--term-text);
-  font-family: var(--font-mono);
-  font-size: 0.85rem;
 }
 
-#terminal-input:disabled {
-  color: var(--text-dim);
-  cursor: not-allowed;
+.terminal-content {
+  display: inline;
+}
+
+.terminal-text {
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.terminal-inline-buffer {
+  color: var(--term-text);
+  font-weight: 600;
+}
+
+.terminal-cursor {
+  display: inline-block;
+  width: 8px;
+  height: 15px;
+  vertical-align: -2px;
+  background: currentColor;
+  margin-left: 1px;
+}
+
+.terminal-cursor.blink {
+  animation: term-blink 1s step-end infinite;
+}
+
+.terminal-cursor.waiting {
+  background: var(--accent-cyan);
+  box-shadow: 0 0 8px var(--accent-cyan-glow);
+  animation: term-blink 0.6s step-end infinite;
+}
+
+@keyframes term-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.terminal-hidden-input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+  width: 1px;
+  height: 1px;
+  top: 0;
+  left: 0;
+  border: none;
+  margin: 0;
+  padding: 0;
 }
 
 /* Badges for state */
@@ -935,7 +978,172 @@ body {
 /* Responsive */
 @media (max-width: 1200px) {
   .main-content {
-    grid-template-columns: 1fr;
     overflow-y: auto;
   }
 }
+
+/* Docking Layout System (VS Code Style) */
+.dock-split {
+  display: flex;
+  overflow: hidden;
+  position: relative;
+  width: 100%;
+  height: 100%;
+  gap: 0;
+}
+
+.dock-split.dock-row {
+  flex-direction: row;
+}
+
+.dock-split.dock-col {
+  flex-direction: column;
+}
+
+/* Dock Resizers */
+.dock-resizer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+  z-index: 10;
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+
+.dock-resizer-row {
+  width: 8px;
+  cursor: col-resize;
+  margin: 0 1px;
+}
+
+.dock-resizer-col {
+  height: 8px;
+  cursor: row-resize;
+  margin: 1px 0;
+}
+
+.dock-resizer:hover,
+.dock-resizer.is-dragging {
+  background: rgba(2, 132, 199, 0.15);
+}
+
+.dock-resizer-line {
+  background: var(--border-color);
+  border-radius: 2px;
+  transition: all 0.2s ease;
+}
+
+.dock-resizer-row .dock-resizer-line {
+  width: 2px;
+  height: 36px;
+}
+
+.dock-resizer-col .dock-resizer-line {
+  width: 36px;
+  height: 2px;
+}
+
+.dock-resizer:hover .dock-resizer-line,
+.dock-resizer.is-dragging .dock-resizer-line {
+  background: var(--accent-cyan);
+  box-shadow: 0 0 8px var(--accent-cyan-glow);
+}
+
+.dock-resizer-row:hover .dock-resizer-line,
+.dock-resizer-row.is-dragging .dock-resizer-line {
+  height: 100%;
+}
+
+.dock-resizer-col:hover .dock-resizer-line,
+.dock-resizer-col.is-dragging .dock-resizer-line {
+  width: 100%;
+}
+
+/* Drop Zone Overlays */
+.dock-drop-overlay {
+  position: fixed;
+  z-index: 9999;
+  pointer-events: none;
+  border-radius: 8px;
+  transition: all 0.1s ease;
+}
+
+.dock-zone {
+  position: absolute;
+  background: rgba(2, 132, 199, 0.18);
+  border: 1.5px dashed var(--accent-cyan);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--accent-cyan);
+  transition: all 0.15s ease;
+  backdrop-filter: blur(4px);
+}
+
+.dock-zone span {
+  background: rgba(255, 255, 255, 0.92);
+  color: #0284c7;
+  padding: 3px 8px;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+
+.dock-zone.active {
+  background: rgba(2, 132, 199, 0.35);
+  border-style: solid;
+  border-width: 2px;
+  box-shadow: 0 0 15px var(--accent-cyan-glow);
+}
+
+.dock-zone-top {
+  top: 8px; left: 20%; width: 60%; height: 32px;
+}
+
+.dock-zone-bottom {
+  bottom: 8px; left: 20%; width: 60%; height: 32px;
+}
+
+.dock-zone-left {
+  top: 20%; left: 8px; width: 32px; height: 60%;
+  writing-mode: vertical-lr;
+}
+
+.dock-zone-right {
+  top: 20%; right: 8px; width: 32px; height: 60%;
+  writing-mode: vertical-lr;
+}
+
+.dock-zone-preview {
+  position: absolute;
+  background: rgba(2, 132, 199, 0.25);
+  border: 2px solid var(--accent-cyan);
+  border-radius: 6px;
+  pointer-events: none;
+  display: none;
+  transition: all 0.1s ease;
+}
+
+/* Dragging cursor state */
+body.is-dock-dragging {
+  cursor: grabbing !important;
+  user-select: none !important;
+}
+
+.panel-header {
+  cursor: grab;
+}
+.panel-header:active {
+  cursor: grabbing;
+}
+
+.panel.is-dock-source {
+  opacity: 0.65;
+  filter: grayscale(0.2);
+  outline: 2px dashed var(--accent-cyan);
+  outline-offset: -2px;
+}
+

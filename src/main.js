@@ -5,6 +5,9 @@ import { Assembler } from './emulator/assembler.js';
 import { CPU, CPU_STATE } from './emulator/cpu.js';
 import { Terminal } from './components/terminal.js';
 import { registerAssemblyIntel } from './editor/intel.js';
+import { DockManager } from './layout/dockManager.js';
+
+let dockManager = null;
 
 // Setup Monaco Environment
 self.MonacoEnvironment = {
@@ -126,8 +129,7 @@ monaco.editor.defineTheme('emu8086-light', {
 const memory = new Memory();
 const registers = new Registers();
 const terminalScreen = document.getElementById('terminal-screen');
-const terminalInput = document.getElementById('terminal-input');
-const terminal = new Terminal(terminalScreen, terminalInput);
+const terminal = new Terminal(terminalScreen);
 const assembler = new Assembler(memory, registers);
 const cpu = new CPU(registers, memory, terminal);
 
@@ -173,9 +175,18 @@ END MAIN`;
 function init() {
   initMonacoEditor();
   setupEventListeners();
-  setupResizers();
+
+  const panelsMap = {
+    'panel-editor': document.getElementById('panel-editor'),
+    'panel-cpu': document.getElementById('panel-cpu'),
+    'panel-terminal': document.getElementById('panel-terminal')
+  };
+
+  dockManager = new DockManager(document.getElementById('main-container'), panelsMap, () => {
+    if (monacoEditor) monacoEditor.layout();
+  });
+
   setupWindowActions();
-  
   assembleCode();
 
   cpu.onStateChange = renderUI;
@@ -433,68 +444,6 @@ function renderExecutionPointer() {
   }
 }
 
-// Column Splitter Resizing
-function setupResizers() {
-  const gutter1 = document.getElementById('gutter-1');
-  const gutter2 = document.getElementById('gutter-2');
-  const panelEditor = document.getElementById('panel-editor');
-  const panelCpu = document.getElementById('panel-cpu');
-  const panelTerminal = document.getElementById('panel-terminal');
-
-  function makeResizer(gutter, leftPanel, rightPanel) {
-    let startX = 0;
-    let startLeftWidth = 0;
-    let startRightWidth = 0;
-
-    gutter.addEventListener('pointerdown', (e) => {
-      // Don't resize if either panel is currently floating or maximized
-      if (leftPanel.classList.contains('is-floating') || leftPanel.classList.contains('is-maximized') ||
-          rightPanel.classList.contains('is-floating') || rightPanel.classList.contains('is-maximized')) {
-        return;
-      }
-
-      e.preventDefault();
-      startX = e.clientX;
-      startLeftWidth = leftPanel.getBoundingClientRect().width;
-      startRightWidth = rightPanel.getBoundingClientRect().width;
-      gutter.classList.add('is-dragging');
-      document.body.style.cursor = 'col-resize';
-      document.body.style.userSelect = 'none';
-
-      const onPointerMove = (moveEvent) => {
-        const deltaX = moveEvent.clientX - startX;
-        const newLeftWidth = startLeftWidth + deltaX;
-        const newRightWidth = startRightWidth - deltaX;
-
-        // Min width constraints (220px)
-        if (newLeftWidth >= 220 && newRightWidth >= 220) {
-          leftPanel.style.flex = `0 0 ${newLeftWidth}px`;
-          rightPanel.style.flex = `0 0 ${newRightWidth}px`;
-          if (monacoEditor) monacoEditor.layout();
-        }
-      };
-
-      const onPointerUp = () => {
-        gutter.classList.remove('is-dragging');
-        document.body.style.cursor = '';
-        document.body.style.userSelect = '';
-        window.removeEventListener('pointermove', onPointerMove);
-        window.removeEventListener('pointerup', onPointerUp);
-      };
-
-      window.addEventListener('pointermove', onPointerMove);
-      window.addEventListener('pointerup', onPointerUp);
-    });
-  }
-
-  if (gutter1 && panelEditor && panelCpu) {
-    makeResizer(gutter1, panelEditor, panelCpu);
-  }
-  if (gutter2 && panelCpu && panelTerminal) {
-    makeResizer(gutter2, panelCpu, panelTerminal);
-  }
-}
-
 // Window Management (Pop-out / Float / Maximize / Restore)
 let highestZIndex = 1000;
 const panelPositions = {
@@ -502,6 +451,23 @@ const panelPositions = {
   'panel-cpu': { top: 100, left: 380, width: 500, height: 620 },
   'panel-terminal': { top: 120, left: 740, width: 500, height: 560 }
 };
+
+function unfloatAllPanels() {
+  const panels = document.querySelectorAll('.panel');
+  panels.forEach(panel => {
+    panel.classList.remove('is-floating', 'is-maximized', 'active-window');
+    panel.style.position = '';
+    panel.style.left = '';
+    panel.style.top = '';
+    panel.style.width = '';
+    panel.style.height = '';
+    panel.style.zIndex = '';
+    const floatBtn = panel.querySelector('.btn-float');
+    const maxBtn = panel.querySelector('.btn-maximize');
+    if (floatBtn) { floatBtn.classList.remove('active'); floatBtn.title = 'Pop out into floating window'; }
+    if (maxBtn) { maxBtn.classList.remove('active'); maxBtn.title = 'Maximize panel'; }
+  });
+}
 
 function setupWindowActions() {
   const panels = document.querySelectorAll('.panel');
@@ -592,13 +558,49 @@ function setupWindowActions() {
     }
   });
 
-  // Layout Controls
-  const btnResetLayout = document.getElementById('btn-reset-layout');
+  // Dock Layout Preset Controls
+  const btnLayoutVscode = document.getElementById('btn-layout-vscode');
+  const btnLayoutColumns = document.getElementById('btn-layout-columns');
+  const btnLayoutBottom = document.getElementById('btn-layout-bottom');
   const btnFloatAll = document.getElementById('btn-float-all');
 
-  if (btnResetLayout) {
-    btnResetLayout.addEventListener('click', resetAllLayout);
+  function setActivePresetBtn(activeBtn) {
+    [btnLayoutVscode, btnLayoutColumns, btnLayoutBottom].forEach(b => {
+      if (b) {
+        b.classList.remove('btn-primary');
+        b.classList.add('btn-secondary');
+      }
+    });
+    if (activeBtn) {
+      activeBtn.classList.remove('btn-secondary');
+      activeBtn.classList.add('btn-primary');
+    }
   }
+
+  if (btnLayoutVscode) {
+    btnLayoutVscode.addEventListener('click', () => {
+      unfloatAllPanels();
+      if (dockManager) dockManager.setPreset('VSCODE');
+      setActivePresetBtn(btnLayoutVscode);
+    });
+  }
+
+  if (btnLayoutColumns) {
+    btnLayoutColumns.addEventListener('click', () => {
+      unfloatAllPanels();
+      if (dockManager) dockManager.setPreset('COLUMNS');
+      setActivePresetBtn(btnLayoutColumns);
+    });
+  }
+
+  if (btnLayoutBottom) {
+    btnLayoutBottom.addEventListener('click', () => {
+      unfloatAllPanels();
+      if (dockManager) dockManager.setPreset('BOTTOM_TERM');
+      setActivePresetBtn(btnLayoutBottom);
+    });
+  }
+
   if (btnFloatAll) {
     btnFloatAll.addEventListener('click', floatAllPanels);
   }
@@ -617,7 +619,7 @@ function toggleFloat(panel) {
   const isCurrentlyFloating = panel.classList.contains('is-floating');
 
   if (isCurrentlyFloating) {
-    // Dock back to column grid
+    // Dock back into layout
     panel.classList.remove('is-floating');
     panel.classList.remove('active-window');
     panel.style.position = '';
@@ -630,6 +632,7 @@ function toggleFloat(panel) {
       floatBtn.title = 'Pop out into floating window';
       floatBtn.classList.remove('active');
     }
+    if (dockManager) dockManager.render();
   } else {
     // Pop out into floating window
     panel.classList.remove('is-maximized');
@@ -678,25 +681,16 @@ function toggleMaximize(panel) {
 }
 
 function resetAllLayout() {
-  const panels = document.querySelectorAll('.panel');
-  panels.forEach(panel => {
-    panel.classList.remove('is-floating', 'is-maximized', 'active-window');
-    panel.style.position = '';
-    panel.style.left = '';
-    panel.style.top = '';
-    panel.style.width = '';
-    panel.style.height = '';
-    panel.style.zIndex = '';
-    panel.style.flex = '1 1 33.333%';
-    const floatBtn = panel.querySelector('.btn-float');
-    const maxBtn = panel.querySelector('.btn-maximize');
-    if (floatBtn) { floatBtn.classList.remove('active'); floatBtn.title = 'Pop out into floating window'; }
-    if (maxBtn) { maxBtn.classList.remove('active'); maxBtn.title = 'Maximize panel'; }
-  });
-
-  setTimeout(() => {
-    if (monacoEditor) monacoEditor.layout();
-  }, 60);
+  unfloatAllPanels();
+  if (dockManager) dockManager.setPreset('VSCODE');
+  const btn = document.getElementById('btn-layout-vscode');
+  if (btn) {
+    [document.getElementById('btn-layout-columns'), document.getElementById('btn-layout-bottom')].forEach(b => {
+      if (b) { b.classList.remove('btn-primary'); b.classList.add('btn-secondary'); }
+    });
+    btn.classList.remove('btn-secondary');
+    btn.classList.add('btn-primary');
+  }
 }
 
 function floatAllPanels() {
