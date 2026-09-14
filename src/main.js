@@ -9,11 +9,15 @@ import { registerAssemblyIntel } from './editor/intel.js';
 import { DockManager } from './layout/dockManager.js';
 import { GitHubModal } from './components/githubModal.js';
 import { GoogleDriveModal } from './components/googleDriveModal.js';
+import { CommandPalette } from './components/commandPalette.js';
 
 let dockManager = null;
 let activePresetBtnSetter = null;
 let githubModal = null;
 let googleDriveModal = null;
+let commandPalette = null;
+let currentTheme = 'theme-light';
+let currentLayout = 'VSCODE';
 
 // Setup Monaco Environment
 self.MonacoEnvironment = {
@@ -236,6 +240,9 @@ function init() {
     return monacoEditor ? monacoEditor.getValue() : DEFAULT_CODE;
   });
 
+  // Initialize Command Palette
+  setupCommandPalette();
+
   cpu.onStateChange = renderUI;
   renderUI();
 }
@@ -261,6 +268,22 @@ function initMonacoEditor() {
     cursorSmoothCaretAnimation: 'on',
     cursorWidth: 3,
     cursorStyle: 'line'
+  });
+
+  // Override Monaco shortcuts for Command Palette (Ctrl+Shift+P, Ctrl+P, F1)
+  monacoEditor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyP, () => {
+    if (commandPalette) commandPalette.toggle();
+  });
+  monacoEditor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyP, () => {
+    if (commandPalette) commandPalette.toggle();
+  });
+  monacoEditor.addCommand(monaco.KeyCode.F1, () => {
+    if (commandPalette) commandPalette.toggle();
+  });
+  monacoEditor.addCommand(monaco.KeyCode.F5, () => btnRun.click());
+  monacoEditor.addCommand(monaco.KeyCode.F8, () => btnStep.click());
+  monacoEditor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
+    if (googleDriveModal) googleDriveModal.open();
   });
 
   // Re-layout on resize
@@ -297,23 +320,20 @@ function setupEventListeners() {
 
   btnClearTerm.addEventListener('click', () => terminal.clear());
 
-  // Speed slider
-  speedRange.addEventListener('input', (e) => {
-    const val = parseInt(e.target.value, 10);
-    cpu.speedMs = val;
-    speedLabel.textContent = val === 0 ? 'Max Speed' : `${val}ms`;
-  });
+  // Speed slider (if present)
+  if (speedRange) {
+    speedRange.addEventListener('input', (e) => {
+      const val = parseInt(e.target.value, 10);
+      setSpeed(val);
+    });
+  }
 
-  // Theme select
-  themeSelect.addEventListener('change', (e) => {
-    const val = e.target.value;
-    document.body.className = val;
-    if (val === 'theme-light') {
-      monaco.editor.setTheme('emu8086-light');
-    } else {
-      monaco.editor.setTheme('emu8086-dark');
-    }
-  });
+  // Theme select (if present)
+  if (themeSelect) {
+    themeSelect.addEventListener('change', (e) => {
+      setTheme(e.target.value);
+    });
+  }
 
   // Display Format Toggle
   document.querySelectorAll('.fmt-btn').forEach(btn => {
@@ -344,19 +364,346 @@ function setupEventListeners() {
     });
   }
 
-  // Keyboard Shortcuts
-  window.addEventListener('keydown', (e) => {
-    if (e.key === 'F5') {
-      e.preventDefault();
-      btnRun.click();
-    } else if (e.key === 'F8') {
-      e.preventDefault();
-      btnStep.click();
-    } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
-      e.preventDefault();
-      if (googleDriveModal) googleDriveModal.open();
+  // Global Keyboard Shortcuts (captured at window level to override browser default accelerators)
+  window.addEventListener(
+    'keydown',
+    (e) => {
+      const isCmdOrCtrl = e.ctrlKey || e.metaKey;
+      const isKeyP = e.code === 'KeyP' || e.key === 'p' || e.key === 'P';
+
+      if (isCmdOrCtrl && isKeyP) {
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        if (commandPalette) commandPalette.toggle();
+        return false;
+      }
+
+      if (e.key === 'F1') {
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        if (commandPalette) commandPalette.toggle();
+        return false;
+      }
+
+      if (e.key === 'F5') {
+        e.preventDefault();
+        btnRun.click();
+      } else if (e.key === 'F8') {
+        e.preventDefault();
+        btnStep.click();
+      } else if (isCmdOrCtrl && e.key.toLowerCase() === 's') {
+        e.preventDefault();
+        if (googleDriveModal) googleDriveModal.open();
+      }
+    },
+    { capture: true }
+  );
+}
+
+function setTheme(themeName) {
+  currentTheme = themeName;
+  document.body.className = themeName;
+  if (themeName === 'theme-light') {
+    monaco.editor.setTheme('emu8086-light');
+  } else {
+    monaco.editor.setTheme('emu8086-dark');
+  }
+}
+
+function setSpeed(speedMs) {
+  cpu.speedMs = speedMs;
+  if (speedRange) speedRange.value = speedMs;
+  if (speedLabel) speedLabel.textContent = speedMs === 0 ? 'Max Speed' : `${speedMs}ms`;
+}
+
+function setupCommandPalette() {
+  commandPalette = new CommandPalette();
+
+  const commands = [
+    // --- Layout Presets ---
+    {
+      id: 'layout-vscode',
+      category: 'Layout',
+      title: 'VS Code IDE Split (Default)',
+      detail: 'Editor on top, Terminal below, CPU on right',
+      icon: '📐',
+      keywords: ['layout', 'vscode', 'split', 'default', 'ide'],
+      isActive: () => currentLayout === 'VSCODE',
+      action: () => {
+        currentLayout = 'VSCODE';
+        unfloatAllPanels();
+        if (dockManager) dockManager.setPreset('VSCODE');
+      }
+    },
+    {
+      id: 'layout-columns',
+      category: 'Layout',
+      title: '3-Column Studio Layout',
+      detail: 'Side-by-side Editor, CPU, and Terminal',
+      icon: '▥',
+      keywords: ['layout', 'columns', 'three', 'studio'],
+      isActive: () => currentLayout === 'COLUMNS',
+      action: () => {
+        currentLayout = 'COLUMNS';
+        unfloatAllPanels();
+        if (dockManager) dockManager.setPreset('COLUMNS');
+      }
+    },
+    {
+      id: 'layout-bottom',
+      category: 'Layout',
+      title: 'Bottom Terminal (Wide Screen)',
+      detail: 'Editor & CPU on top, wide Terminal below',
+      icon: '⬓',
+      keywords: ['layout', 'bottom', 'terminal', 'wide'],
+      isActive: () => currentLayout === 'BOTTOM_TERM',
+      action: () => {
+        currentLayout = 'BOTTOM_TERM';
+        unfloatAllPanels();
+        if (dockManager) dockManager.setPreset('BOTTOM_TERM');
+      }
+    },
+    {
+      id: 'layout-float-all',
+      category: 'Layout',
+      title: 'Floating Windows Mode',
+      detail: 'Detach all panels into movable floating windows',
+      icon: '❐',
+      keywords: ['layout', 'float', 'windows', 'detach', 'popout'],
+      isActive: () => currentLayout === 'FLOATING',
+      action: () => {
+        currentLayout = 'FLOATING';
+        floatAllPanels();
+      }
+    },
+    {
+      id: 'layout-focus-editor',
+      category: 'Layout',
+      title: 'Maximize / Focus Editor',
+      detail: 'Expand code editor to full window',
+      icon: '🔍',
+      keywords: ['layout', 'focus', 'editor', 'maximize'],
+      action: () => toggleMaximize(document.getElementById('panel-editor'))
+    },
+    {
+      id: 'layout-focus-terminal',
+      category: 'Layout',
+      title: 'Maximize / Focus Terminal',
+      detail: 'Expand terminal panel to full window',
+      icon: '💻',
+      keywords: ['layout', 'focus', 'terminal', 'maximize'],
+      action: () => toggleMaximize(document.getElementById('panel-terminal'))
+    },
+    {
+      id: 'layout-focus-cpu',
+      category: 'Layout',
+      title: 'Maximize / Focus CPU & Registers',
+      detail: 'Expand CPU panel to full window',
+      icon: '🎛️',
+      keywords: ['layout', 'focus', 'cpu', 'registers', 'maximize'],
+      action: () => toggleMaximize(document.getElementById('panel-cpu'))
+    },
+    {
+      id: 'layout-reset',
+      category: 'Layout',
+      title: 'Reset to Default Layout',
+      detail: 'Restore standard panel arrangement',
+      icon: '↺',
+      keywords: ['layout', 'reset', 'default'],
+      action: () => {
+        currentLayout = 'VSCODE';
+        resetAllLayout();
+      }
+    },
+
+    // --- Color Themes ---
+    {
+      id: 'theme-light',
+      category: 'Theme',
+      title: 'Light Theme (Clean Studio)',
+      detail: 'Crisp high-contrast daylight aesthetic',
+      icon: '☀️',
+      keywords: ['theme', 'light', 'white', 'day'],
+      isActive: () => currentTheme === 'theme-light',
+      action: () => setTheme('theme-light')
+    },
+    {
+      id: 'theme-cyber',
+      category: 'Theme',
+      title: 'Cyber Dark (Neon Blue / Slate)',
+      detail: 'Modern developer dark mode with electric accents',
+      icon: '🌙',
+      keywords: ['theme', 'dark', 'cyber', 'night', 'blue'],
+      isActive: () => currentTheme === 'theme-cyber',
+      action: () => setTheme('theme-cyber')
+    },
+    {
+      id: 'theme-amber',
+      category: 'Theme',
+      title: 'Amber Phosphor CRT',
+      detail: 'Vintage warm amber monochrome display',
+      icon: '🟠',
+      keywords: ['theme', 'amber', 'vintage', 'crt', 'orange'],
+      isActive: () => currentTheme === 'theme-amber',
+      action: () => setTheme('theme-amber')
+    },
+    {
+      id: 'theme-matrix',
+      category: 'Theme',
+      title: 'Matrix Green Phosphor CRT',
+      detail: 'Classic terminal hacker phosphor green',
+      icon: '🟢',
+      keywords: ['theme', 'matrix', 'green', 'hacker', 'crt'],
+      isActive: () => currentTheme === 'theme-matrix',
+      action: () => setTheme('theme-matrix')
+    },
+
+    // --- Execution Speed ---
+    {
+      id: 'speed-0',
+      category: 'Speed',
+      title: 'Max Speed (Instant / 0ms delay)',
+      detail: 'Executes instructions without clock delay',
+      icon: '⚡',
+      keywords: ['speed', 'instant', 'max', 'fast', 'fastest', '0ms'],
+      isActive: () => cpu.speedMs === 0,
+      action: () => setSpeed(0)
+    },
+    {
+      id: 'speed-50',
+      category: 'Speed',
+      title: 'Fast Speed (50ms delay)',
+      detail: 'Quick execution with visible register animations',
+      icon: '⏩',
+      keywords: ['speed', 'fast', '50ms'],
+      isActive: () => cpu.speedMs === 50,
+      action: () => setSpeed(50)
+    },
+    {
+      id: 'speed-100',
+      category: 'Speed',
+      title: 'Normal Speed (100ms delay - Default)',
+      detail: 'Standard educational execution pacing',
+      icon: '▶',
+      keywords: ['speed', 'normal', 'default', '100ms'],
+      isActive: () => cpu.speedMs === 100,
+      action: () => setSpeed(100)
+    },
+    {
+      id: 'speed-200',
+      category: 'Speed',
+      title: 'Medium Speed (200ms delay)',
+      detail: 'Clear view of register & memory changes',
+      icon: '⏱️',
+      keywords: ['speed', 'medium', '200ms'],
+      isActive: () => cpu.speedMs === 200,
+      action: () => setSpeed(200)
+    },
+    {
+      id: 'speed-500',
+      category: 'Speed',
+      title: 'Step-by-Step Slow (500ms delay)',
+      detail: 'Slow-motion debugging and instruction tracing',
+      icon: '🐌',
+      keywords: ['speed', 'slow', 'step', 'trace', '500ms'],
+      isActive: () => cpu.speedMs === 500,
+      action: () => setSpeed(500)
+    },
+
+    // --- Execution Controls ---
+    {
+      id: 'exec-assemble',
+      category: 'Execution',
+      title: 'Assemble Code',
+      detail: 'Compile assembly instructions and sync RAM',
+      icon: '⚙️',
+      keywords: ['assemble', 'compile', 'build'],
+      action: () => assembleCode()
+    },
+    {
+      id: 'exec-run',
+      category: 'Execution',
+      title: 'Run Program',
+      detail: 'Start continuous CPU execution',
+      icon: '▶️',
+      shortcut: 'F5',
+      keywords: ['run', 'start', 'execute'],
+      action: () => btnRun.click()
+    },
+    {
+      id: 'exec-step',
+      category: 'Execution',
+      title: 'Single Cycle Step',
+      detail: 'Execute one instruction and advance IP',
+      icon: '⏭️',
+      shortcut: 'F8',
+      keywords: ['step', 'single', 'cycle', 'next'],
+      action: () => btnStep.click()
+    },
+    {
+      id: 'exec-pause',
+      category: 'Execution',
+      title: 'Pause Execution',
+      detail: 'Temporarily halt the CPU clock',
+      icon: '⏸️',
+      keywords: ['pause', 'freeze'],
+      action: () => cpu.pause()
+    },
+    {
+      id: 'exec-reset',
+      category: 'Execution',
+      title: 'Reset Registers & CPU',
+      detail: 'Zero out CPU state and reload memory',
+      icon: '⏹️',
+      keywords: ['reset', 'stop', 'halt', 'restart'],
+      action: () => btnStop.click()
+    },
+
+    // --- Tools & Cloud ---
+    {
+      id: 'tool-clear-term',
+      category: 'Terminal',
+      title: 'Clear Terminal Output',
+      detail: 'Wipe all text from the DOS screen',
+      icon: '🗑️',
+      keywords: ['terminal', 'clear', 'cls'],
+      action: () => terminal.clear()
+    },
+    {
+      id: 'tool-gdrive',
+      category: 'Cloud',
+      title: 'Save & Sync to Google Drive',
+      detail: 'Upload source code via Google Identity Services',
+      icon: '☁️',
+      shortcut: 'Ctrl+S',
+      keywords: ['google', 'drive', 'save', 'cloud', 'backup'],
+      action: () => {
+        if (googleDriveModal) googleDriveModal.open();
+      }
+    },
+    {
+      id: 'tool-github',
+      category: 'Cloud',
+      title: 'Push / Commit to GitHub',
+      detail: 'Publish code repository directly to GitHub',
+      icon: '🐙',
+      keywords: ['github', 'git', 'push', 'commit', 'repo'],
+      action: () => {
+        if (githubModal) githubModal.open();
+      }
     }
-  });
+  ];
+
+  commandPalette.setCommands(commands);
+
+  const btnOpenPalette = document.getElementById('btn-open-palette');
+  if (btnOpenPalette) {
+    btnOpenPalette.addEventListener('click', () => {
+      commandPalette.toggle();
+    });
+  }
 }
 
 function assembleCode() {

@@ -58,47 +58,12 @@
 
         <div class="cyber-divider"></div>
 
-        <!-- Clock Rate / Speed Capsule -->
-        <div class="cyber-speed-dock" title="Execution Clock Delay">
-          <svg class="speed-icon" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><polyline points="12 6 12 12 15 15"/></svg>
-          <input type="range" id="speed-range" min="0" max="500" step="10" value="100" class="cyber-range">
-          <span id="speed-label" class="mono cyber-speed-badge">100ms</span>
-        </div>
-
-        <div class="cyber-divider"></div>
-
-        <!-- Segmented Futuristic Layout Dock -->
-        <div class="cyber-segmented-dock" role="tablist">
-          <button id="btn-layout-vscode" class="seg-tab btn-primary" title="VS Code Layout (IDE)">
-            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="15" y1="3" x2="15" y2="15"/></svg>
-            <span>IDE</span>
-          </button>
-          <button id="btn-layout-columns" class="seg-tab btn-secondary" title="3-Column Layout">
-            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/></svg>
-            <span>Cols</span>
-          </button>
-          <button id="btn-layout-bottom" class="seg-tab btn-secondary" title="Bottom Terminal Layout">
-            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="14" x2="21" y2="14"/></svg>
-            <span>Term</span>
-          </button>
-          <button id="btn-float-all" class="seg-tab btn-secondary" title="Floating Windows Mode">
-            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="11" height="11" rx="1.5"/><rect x="10" y="10" width="11" height="11" rx="1.5"/></svg>
-            <span>Float</span>
-          </button>
-        </div>
-
-        <div class="cyber-divider"></div>
-
-        <!-- Futuristic Cyber Theme Selector -->
-        <div class="cyber-theme-dock">
-          <svg class="theme-icon" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
-          <select id="theme-select" class="cyber-select" title="Palette & CRT Phosphor Theme">
-            <option value="theme-light" selected>Light</option>
-            <option value="theme-cyber">Cyber</option>
-            <option value="theme-amber">Amber</option>
-            <option value="theme-matrix">Matrix</option>
-          </select>
-        </div>
+        <!-- Command Palette Quick Launcher -->
+        <button id="btn-open-palette" class="deck-btn deck-palette" title="Open Command Palette (Ctrl+Shift+P / F1)">
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+          <span>Command Palette</span>
+          <kbd class="palette-btn-kbd">Ctrl+Shift+P</kbd>
+        </button>
 
         <div class="cyber-divider"></div>
 
