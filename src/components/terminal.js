@@ -29,12 +29,7 @@ export class Terminal {
     this.screenElement.setAttribute('role', 'textbox');
     this.screenElement.setAttribute('aria-label', 'Terminal Screen');
 
-    this.screenElement.innerHTML = `
-      <div class="terminal-content">
-        <span class="terminal-text"></span><span class="terminal-inline-buffer"></span><span class="terminal-cursor blink"></span>
-      </div>
-      <input type="text" class="terminal-hidden-input" aria-hidden="true" tabindex="-1" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
-    `;
+    this.screenElement.innerHTML = '<div class="terminal-content"><span class="terminal-text"></span><span class="terminal-inline-buffer"></span><span class="terminal-cursor blink"></span></div><input type="text" class="terminal-hidden-input" aria-hidden="true" tabindex="-1" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">';
 
     this.textEl = this.screenElement.querySelector('.terminal-text');
     this.bufferEl = this.screenElement.querySelector('.terminal-inline-buffer');

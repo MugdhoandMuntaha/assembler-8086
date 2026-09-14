@@ -230,7 +230,9 @@ body.theme-light .terminal-screen {
   text-shadow: none;
 }
 body.theme-light .terminal-cursor {
-  background: #0284c7;
+  background: #0f172a;
+  margin: 0 !important;
+  padding: 0;
 }
 body.theme-light .terminal-cursor.waiting {
   background: #0284c7;
@@ -1409,7 +1411,8 @@ body.theme-light .vscode-term-tab {
   display: flex;
   flex-direction: column;
   background: var(--term-bg);
-  padding: 10px 14px;
+  padding: 4px 6px;
+  margin: 0;
   font-family: Consolas, 'Cascadia Code', 'Fira Code', Menlo, Monaco, monospace;
   position: relative;
   overflow: hidden;
@@ -1418,10 +1421,12 @@ body.theme-light .vscode-term-tab {
 
 .terminal-screen {
   flex: 1;
+  margin: 0;
+  padding: 0;
   color: var(--term-text);
   font-size: 12.5px;
-  line-height: 1.45;
-  letter-spacing: 0.25px;
+  line-height: 1.35;
+  letter-spacing: 0;
   white-space: pre-wrap;
   word-break: break-all;
   overflow-y: auto;
@@ -1432,29 +1437,37 @@ body.theme-light .vscode-term-tab {
 }
 
 .terminal-content {
-  display: inline;
+  display: block;
+  margin: 0;
+  padding: 0;
+  line-height: 1.35;
 }
 
 .terminal-text {
   white-space: pre-wrap;
   word-break: break-all;
+  margin: 0;
+  padding: 0;
 }
 
 .terminal-inline-buffer {
   color: var(--term-text);
   font-weight: 600;
+  margin: 0;
+  padding: 0;
 }
 
 .terminal-cursor {
   display: inline-block;
   width: 7.5px;
-  height: 14.5px;
-  vertical-align: -2px;
+  height: 14px;
+  vertical-align: -1.5px;
   background: #aeafad;
-  margin-left: 1px;
+  margin: 0 !important;
+  padding: 0;
 }
 body.theme-light .terminal-cursor {
-  background: #1e1e1e;
+  background: #0f172a;
 }
 
 .terminal-cursor.blink {
@@ -1488,12 +1501,11 @@ body.theme-light .terminal-cursor {
 /* Minimal Modern Floating Input Popup Widget */
 .terminal-input-popup {
   position: absolute;
-  top: 14px;
-  left: 50%;
-  transform: translateX(-50%);
+  top: 6px;
+  right: 10px;
   z-index: 50;
-  width: calc(100% - 28px);
-  max-width: 420px;
+  width: calc(100% - 20px);
+  max-width: 340px;
   animation: popup-drop 0.18s cubic-bezier(0.16, 1, 0.3, 1);
 }
 

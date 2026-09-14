@@ -1,3 +1,4 @@
+import './style.css';
 import * as monaco from 'monaco-editor';
 import { Memory } from './emulator/memory.js';
 import { Registers } from './emulator/registers.js';
