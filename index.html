@@ -67,8 +67,17 @@
 
         <div class="cyber-divider"></div>
 
-        <!-- Action Tools: Google Drive & GitHub -->
+        <!-- Action Tools: Local Storage, Google Drive & GitHub -->
         <div class="cyber-actions-dock">
+          <button id="btn-open-storage" class="cyber-action-btn action-storage" title="Save & Manage Programs in Local Storage (Ctrl+S)">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+              <polyline points="17 21 17 13 7 13 7 21"/>
+              <polyline points="7 3 7 8 15 8"/>
+            </svg>
+            <span>Storage</span>
+          </button>
+
           <button id="btn-open-gdrive" class="cyber-action-btn action-gdrive" title="Save & Sync source code to Google Drive">
             <svg viewBox="0 0 87.3 78" width="13" height="13">
               <path d="m6.6 66.85 3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8h-27.5c0 1.55.4 3.1 1.2 4.5z" fill="#0066da"/>
@@ -98,7 +107,8 @@
         <div class="panel-header" data-panel-id="panel-editor">
           <div class="panel-title">
             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-            8086 Assembly Source Code
+            <span id="editor-file-title" class="editor-file-title">program.asm</span>
+            <span id="editor-save-indicator" class="editor-save-indicator" title="Local Storage Status">• Saved</span>
           </div>
           <div class="panel-header-right">
             <span id="cpu-state-badge" class="badge state-stopped">STOPPED</span>

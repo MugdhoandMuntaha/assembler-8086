@@ -9,12 +9,14 @@ import { registerAssemblyIntel } from './editor/intel.js';
 import { DockManager } from './layout/dockManager.js';
 import { GitHubModal } from './components/githubModal.js';
 import { GoogleDriveModal } from './components/googleDriveModal.js';
+import { LocalStorageModal } from './components/localStorageModal.js';
 import { CommandPalette } from './components/commandPalette.js';
 
 let dockManager = null;
 let activePresetBtnSetter = null;
 let githubModal = null;
 let googleDriveModal = null;
+let localStorageModal = null;
 let commandPalette = null;
 let currentTheme = 'theme-light';
 let currentLayout = 'VSCODE';
@@ -208,6 +210,21 @@ END MAIN`;
 
 // Initialize App
 function init() {
+  // Initialize Local Storage Modal
+  localStorageModal = new LocalStorageModal(
+    () => (monacoEditor ? monacoEditor.getValue() : DEFAULT_CODE),
+    (newCode) => {
+      if (monacoEditor) {
+        monacoEditor.setValue(newCode);
+        assembleCode();
+      }
+    },
+    (filename) => {
+      const editorTitle = document.getElementById('editor-file-title');
+      if (editorTitle) editorTitle.textContent = filename;
+    }
+  );
+
   initMonacoEditor();
   setupEventListeners();
 
@@ -252,8 +269,11 @@ function init() {
 
 function initMonacoEditor() {
   const container = document.getElementById('monaco-editor-container');
+  const savedDraft = localStorageModal ? localStorageModal.getDraftCode() : localStorage.getItem('emu8086_draft_code');
+  const initialCode = (savedDraft && savedDraft.trim().length > 0) ? savedDraft : DEFAULT_CODE;
+
   monacoEditor = monaco.editor.create(container, {
-    value: DEFAULT_CODE,
+    value: initialCode,
     language: 'x86asm',
     theme: 'emu8086-light',
     fontFamily: "'Fira Code', Consolas, monospace",
@@ -287,8 +307,18 @@ function initMonacoEditor() {
   monacoEditor.addCommand(monaco.KeyCode.F5, () => btnRun.click());
   monacoEditor.addCommand(monaco.KeyCode.F8, () => btnStep.click());
   monacoEditor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
-    if (googleDriveModal) googleDriveModal.open();
+    if (localStorageModal) {
+      localStorageModal.quickSave();
+    }
   });
+
+  // Setup Autosave & File title indicator
+  if (localStorageModal) {
+    localStorageModal.setupAutosave(monacoEditor);
+  }
+  const activeFilename = localStorage.getItem('emu8086_active_filename') || 'program.asm';
+  const editorTitle = document.getElementById('editor-file-title');
+  if (editorTitle) editorTitle.textContent = activeFilename;
 
   // Re-layout on resize
   window.addEventListener('resize', () => {
@@ -352,6 +382,14 @@ function setupEventListeners() {
   // Memory Jump
   btnMemJump.addEventListener('click', renderMemoryTable);
 
+  // Local Storage Button
+  const btnOpenStorage = document.getElementById('btn-open-storage');
+  if (btnOpenStorage) {
+    btnOpenStorage.addEventListener('click', () => {
+      if (localStorageModal) localStorageModal.open();
+    });
+  }
+
   // Google Drive Cloud Save Button
   const btnOpenGDrive = document.getElementById('btn-open-gdrive');
   if (btnOpenGDrive) {
@@ -399,7 +437,9 @@ function setupEventListeners() {
         btnStep.click();
       } else if (isCmdOrCtrl && e.key.toLowerCase() === 's') {
         e.preventDefault();
-        if (googleDriveModal) googleDriveModal.open();
+        if (localStorageModal) {
+          localStorageModal.quickSave();
+        }
       }
     },
     { capture: true }
@@ -788,6 +828,72 @@ function setupCommandPalette() {
       action: () => resetZoom()
     },
 
+    // --- File & Local Storage ---
+    {
+      id: 'file-quick-save',
+      category: 'File',
+      title: 'Save Code to Local Storage',
+      detail: 'Quick save active code into browser persistent storage',
+      icon: '💾',
+      shortcut: 'Ctrl+S',
+      keywords: ['save', 'local', 'storage', 'file', 'persist', 'quick'],
+      action: () => {
+        if (localStorageModal) localStorageModal.quickSave();
+      }
+    },
+    {
+      id: 'file-save-as',
+      category: 'File',
+      title: 'Save As... (Local Storage Manager)',
+      detail: 'Specify filename, description, and save into local storage',
+      icon: '💾',
+      keywords: ['save', 'as', 'name', 'local', 'storage'],
+      action: () => {
+        if (localStorageModal) localStorageModal.open('save');
+      }
+    },
+    {
+      id: 'file-open-library',
+      category: 'File',
+      title: 'Open from Local Storage (Saved Programs)',
+      detail: 'Browse, load, and manage your library of 8086 programs',
+      icon: '📂',
+      keywords: ['open', 'load', 'library', 'files', 'browse', 'programs'],
+      action: () => {
+        if (localStorageModal) localStorageModal.open('library');
+      }
+    },
+    {
+      id: 'file-backup-json',
+      category: 'File',
+      title: 'Backup All Programs (Export JSON)',
+      detail: 'Download all saved programs as a JSON archive',
+      icon: '📦',
+      keywords: ['backup', 'export', 'json', 'download', 'archive'],
+      action: () => {
+        if (localStorageModal) localStorageModal.exportAllJSON();
+      }
+    },
+    {
+      id: 'file-new-template',
+      category: 'File',
+      title: 'New File / Reset to Template',
+      detail: 'Clear editor and start with standard 8086 template',
+      icon: '📄',
+      keywords: ['new', 'blank', 'reset', 'clear', 'template'],
+      action: () => {
+        if (confirm('Start new blank template? Any unsaved edits will be cleared.')) {
+          if (monacoEditor) {
+            monacoEditor.setValue(DEFAULT_CODE);
+            assembleCode();
+          }
+          if (localStorageModal) {
+            localStorageModal.setActiveFile('program.asm');
+          }
+        }
+      }
+    },
+
     // --- Tools & Cloud ---
     {
       id: 'tool-clear-term',
@@ -804,7 +910,6 @@ function setupCommandPalette() {
       title: 'Save & Sync to Google Drive',
       detail: 'Upload source code via Google Identity Services',
       icon: '☁️',
-      shortcut: 'Ctrl+S',
       keywords: ['google', 'drive', 'save', 'cloud', 'backup'],
       action: () => {
         if (googleDriveModal) googleDriveModal.open();
