@@ -273,7 +273,7 @@ function setupEventListeners() {
   // Buttons
   btnAssemble.addEventListener('click', assembleCode);
   btnRun.addEventListener('click', () => {
-    if (cpu.state === CPU_STATE.STOPPED || cpu.state === CPU_STATE.ERROR) {
+    if (cpu.state === CPU_STATE.STOPPED || cpu.state === CPU_STATE.ERROR || cpu.state === CPU_STATE.HALTED) {
       if (assembleCode()) cpu.run();
     } else {
       cpu.run();
@@ -281,7 +281,7 @@ function setupEventListeners() {
   });
 
   btnStep.addEventListener('click', () => {
-    if (cpu.state === CPU_STATE.STOPPED || cpu.state === CPU_STATE.ERROR) {
+    if (cpu.state === CPU_STATE.STOPPED || cpu.state === CPU_STATE.ERROR || cpu.state === CPU_STATE.HALTED) {
       if (assembleCode()) cpu.step();
     } else {
       cpu.step();
