@@ -301,14 +301,40 @@ export function registerAssemblyIntel(monaco) {
 
   // 1. Register Completion Item Provider (VS Code Style Autocomplete)
   monaco.languages.registerCompletionItemProvider('x86asm', {
+    triggerCharacters: ['.', '@'],
     provideCompletionItems: (model, position) => {
+      const lineContent = model.getLineContent(position.lineNumber);
       const word = model.getWordUntilPosition(position);
-      const range = {
+
+      // Check if user already typed a leading dot '.' or '@' immediately before the current word token
+      // e.g. typing ".MO" -> word.word is "MO", word.startColumn is 2, lineContent[0] is '.'
+      const hasPrecedingDot = (word.startColumn > 1 && lineContent.charAt(word.startColumn - 2) === '.');
+      const hasPrecedingAt = (word.startColumn > 1 && lineContent.charAt(word.startColumn - 2) === '@');
+
+      // Standard range covering only the current word token
+      const standardRange = {
         startLineNumber: position.lineNumber,
         endLineNumber: position.lineNumber,
         startColumn: word.startColumn,
         endColumn: word.endColumn
       };
+
+      // Dot range: if user already typed '.', include the dot in the replacement range
+      // so ".MODEL SMALL" replaces ".MO" completely instead of appending to "..MODEL SMALL"
+      const dotRange = hasPrecedingDot ? {
+        startLineNumber: position.lineNumber,
+        endLineNumber: position.lineNumber,
+        startColumn: word.startColumn - 1,
+        endColumn: word.endColumn
+      } : standardRange;
+
+      // At range: if user already typed '@', include the '@' in the replacement range
+      const atRange = hasPrecedingAt ? {
+        startLineNumber: position.lineNumber,
+        endLineNumber: position.lineNumber,
+        startColumn: word.startColumn - 1,
+        endColumn: word.endColumn
+      } : standardRange;
 
       const suggestions = [];
 
@@ -321,19 +347,25 @@ export function registerAssemblyIntel(monaco) {
           insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
           detail: item.detail,
           documentation: { value: item.doc },
-          range
+          range: standardRange
         });
       });
 
       // Add Registers
       REGISTERS.forEach(item => {
+        const isAtSymbol = item.label.startsWith('@');
+        const targetRange = isAtSymbol ? atRange : standardRange;
+        const cleanName = isAtSymbol ? item.label.substring(1) : item.label;
+        const filterText = isAtSymbol ? (hasPrecedingAt ? item.label : `${cleanName} ${item.label}`) : item.label;
+
         suggestions.push({
           label: item.label,
           kind: monaco.languages.CompletionItemKind.Variable,
           insertText: item.label,
           detail: item.detail,
           documentation: { value: item.doc },
-          range
+          filterText,
+          range: targetRange
         });
       });
 
@@ -346,18 +378,46 @@ export function registerAssemblyIntel(monaco) {
           insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
           detail: item.detail,
           documentation: { value: item.doc },
-          range
+          range: standardRange
         });
       });
 
-      // Add Directives
-      ['.MODEL SMALL', '.STACK 100H', '.DATA', '.CODE', 'MAIN PROC', 'ENDP MAIN', 'END MAIN', 'DB', 'DW', 'DUP', 'ORG 100H'].forEach(d => {
+      // Add Directives with rich snippets and smart range
+      const DIRECTIVES = [
+        { label: '.MODEL SMALL', snippet: '.MODEL ${1|SMALL,TINY,MEDIUM,COMPACT,LARGE|}', detail: 'Memory Model Directive', doc: 'Defines memory model segmentation and pointer conventions.' },
+        { label: '.STACK 100H', snippet: '.STACK ${1:100H}', detail: 'Stack Segment Directive', doc: 'Allocates memory for program stack segment.' },
+        { label: '.DATA', snippet: '.DATA', detail: 'Data Segment Directive', doc: 'Declares beginning of data segment for program variables.' },
+        { label: '.CODE', snippet: '.CODE', detail: 'Code Segment Directive', doc: 'Declares beginning of code segment containing executable instructions.' },
+        { label: '.STARTUP', snippet: '.STARTUP', detail: 'Startup Code Directive', doc: 'Generates standard DOS program startup code.' },
+        { label: '.EXIT', snippet: '.EXIT', detail: 'Exit Program Directive', doc: 'Generates standard DOS clean program termination code.' },
+        { label: 'ORG 100H', snippet: 'ORG ${1:100H}', detail: 'Origin Address Directive', doc: 'Sets starting offset address in segment (standard for .COM files).' },
+        { label: 'MAIN PROC', snippet: '${1:MAIN} PROC\n    $0\n${1:MAIN} ENDP', detail: 'Procedure Definition Block', doc: 'Declares a procedure or function subroutine block.' },
+        { label: 'END MAIN', snippet: 'END ${1:MAIN}', detail: 'End Program Directive', doc: 'Marks the end of assembly file and execution start label.' },
+        { label: 'ENDP', snippet: '${1:MAIN} ENDP', detail: 'End Procedure Directive', doc: 'Terminates a procedure definition.' },
+        { label: 'DB', snippet: 'DB ${1:0}', detail: 'Define Byte (8-bit)', doc: 'Allocates one or more bytes of memory with initial values.' },
+        { label: 'DW', snippet: 'DW ${1:0}', detail: 'Define Word (16-bit)', doc: 'Allocates one or more 16-bit words of memory with initial values.' },
+        { label: 'DUP', snippet: 'DUP(${1:0})', detail: 'Duplicate Storage', doc: 'Repeats a memory allocation multiple times (e.g. `10 DUP(0)`).' },
+        { label: 'EQU', snippet: '${1:CONST_NAME} EQU ${2:0}', detail: 'Equate Constant', doc: 'Defines a symbolic assembler constant.' },
+        { label: 'ASSUME', snippet: 'ASSUME CS:${1:CODE}, DS:${2:DATA}', detail: 'Segment Association', doc: 'Associates segment registers with logical segment names.' },
+        { label: 'OFFSET', snippet: 'OFFSET ${1:VARIABLE}', detail: 'Offset Operator', doc: 'Returns the offset address of a variable within its segment.' },
+        { label: 'PTR', snippet: '${1|BYTE,WORD|} PTR [${2:BX}]', detail: 'Pointer Type Override', doc: 'Explicitly defines the size of an operand.' }
+      ];
+
+      DIRECTIVES.forEach(d => {
+        const isDotSymbol = d.label.startsWith('.');
+        const targetRange = isDotSymbol ? dotRange : standardRange;
+        const cleanName = isDotSymbol ? d.label.substring(1) : d.label;
+        const filterText = isDotSymbol ? (hasPrecedingDot ? d.label : `${cleanName} ${d.label}`) : d.label;
+
         suggestions.push({
-          label: d,
-          kind: monaco.languages.CompletionItemKind.Function,
-          insertText: d,
-          detail: '8086 Directive',
-          range
+          label: d.label,
+          kind: monaco.languages.CompletionItemKind.Keyword,
+          insertText: d.snippet,
+          insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+          detail: d.detail,
+          documentation: { value: d.doc },
+          filterText,
+          range: targetRange
         });
       });
 

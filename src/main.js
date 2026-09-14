@@ -28,6 +28,28 @@ self.MonacoEnvironment = {
 // Register x86 / 8086 Assembly Language Definition for Monaco
 monaco.languages.register({ id: 'x86asm' });
 
+monaco.languages.setLanguageConfiguration('x86asm', {
+  comments: {
+    lineComment: ';'
+  },
+  brackets: [
+    ['[', ']'],
+    ['(', ')']
+  ],
+  autoClosingPairs: [
+    { open: "'", close: "'" },
+    { open: '"', close: '"' },
+    { open: '[', close: ']' },
+    { open: '(', close: ')' }
+  ],
+  surroundingPairs: [
+    { open: "'", close: "'" },
+    { open: '"', close: '"' },
+    { open: '[', close: ']' },
+    { open: '(', close: ')' }
+  ]
+});
+
 monaco.languages.setMonarchTokensProvider('x86asm', {
   defaultToken: '',
   ignoreCase: true,
