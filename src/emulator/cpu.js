@@ -41,6 +41,9 @@ export class CPU {
       clearInterval(this.timer);
       this.timer = null;
     }
+    if (this.terminal && typeof this.terminal.finishInput === 'function') {
+      this.terminal.finishInput();
+    }
     this.state = CPU_STATE.STOPPED;
     this.registers.IP = 0;
     if (this.onStateChange) this.onStateChange();
@@ -543,7 +546,7 @@ export class CPU {
       } else if (ah === 0x4C) {
         // Exit program
         this.state = CPU_STATE.HALTED;
-        this.terminal.printString('\n[Program terminated with return code 0]\n');
+        this.terminal.printString('\n[Process completed]\n');
       }
     }
   }
