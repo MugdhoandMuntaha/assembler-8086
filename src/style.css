@@ -3005,6 +3005,61 @@ body.theme-light .palette-btn-kbd {
   color: #64748b;
 }
 
+/* ==========================================================================
+   Minimal Floating Zoom HUD (Ctrl + Mouse Wheel)
+   ========================================================================== */
+.zoom-hud {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 10001;
+  background: rgba(15, 23, 42, 0.92);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--accent-cyan);
+  border-radius: 6px;
+  padding: 6px 14px;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--accent-cyan);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45), 0 0 12px var(--accent-cyan-glow);
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  user-select: none;
+}
+
+body.theme-light .zoom-hud {
+  background: rgba(255, 255, 255, 0.96);
+  border-color: rgba(2, 132, 199, 0.4);
+  color: #0284c7;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12), 0 0 10px rgba(2, 132, 199, 0.15);
+}
+
+body.theme-amber .zoom-hud {
+  border-color: #f59e0b;
+  color: #f59e0b;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5), 0 0 12px rgba(245, 158, 11, 0.4);
+}
+
+body.theme-matrix .zoom-hud {
+  border-color: #22c55e;
+  color: #22c55e;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5), 0 0 12px rgba(34, 197, 94, 0.4);
+}
+
+.zoom-hud.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.zoom-hud.fade-out {
+  opacity: 0;
+  transform: translateY(6px);
+}
+
+
 
 
 

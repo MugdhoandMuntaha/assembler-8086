@@ -18,6 +18,9 @@ let googleDriveModal = null;
 let commandPalette = null;
 let currentTheme = 'theme-light';
 let currentLayout = 'VSCODE';
+let editorFontSize = 13;
+let terminalFontSize = 12.5;
+let zoomHudTimer = null;
 
 // Setup Monaco Environment
 self.MonacoEnvironment = {
@@ -254,8 +257,9 @@ function initMonacoEditor() {
     language: 'x86asm',
     theme: 'emu8086-light',
     fontFamily: "'Fira Code', Consolas, monospace",
-    fontSize: 13,
-    lineHeight: 20,
+    fontSize: editorFontSize,
+    lineHeight: Math.round(editorFontSize * 1.5),
+    mouseWheelZoom: true,
     minimap: { enabled: false },
     glyphMargin: true,
     automaticLayout: true,
@@ -400,6 +404,92 @@ function setupEventListeners() {
     },
     { capture: true }
   );
+
+  // Control + Scroll Wheel Zoom (Editor & Terminal & Workspace)
+  window.addEventListener(
+    'wheel',
+    (e) => {
+      if (e.ctrlKey || e.metaKey) {
+        // Prevent default browser full-page zoom
+        e.preventDefault();
+        e.stopPropagation();
+
+        const delta = e.deltaY < 0 ? 1 : -1;
+
+        const overTerminal = e.target.closest('#panel-terminal') || e.target.closest('.terminal-wrapper');
+        const overEditor = e.target.closest('#panel-editor') || e.target.closest('#monaco-editor-container');
+
+        if (overTerminal) {
+          zoomTerminal(delta);
+        } else if (overEditor) {
+          zoomEditor(delta);
+        } else {
+          zoomEditor(delta);
+          zoomTerminal(delta);
+        }
+      }
+    },
+    { passive: false, capture: true }
+  );
+}
+
+function showZoomHUD(message) {
+  let hud = document.getElementById('zoom-hud');
+  if (!hud) {
+    hud = document.createElement('div');
+    hud.id = 'zoom-hud';
+    hud.className = 'zoom-hud';
+    document.body.appendChild(hud);
+  }
+  hud.textContent = message;
+  hud.classList.remove('hidden', 'fade-out');
+  hud.classList.add('visible');
+
+  if (zoomHudTimer) clearTimeout(zoomHudTimer);
+  zoomHudTimer = setTimeout(() => {
+    hud.classList.add('fade-out');
+    setTimeout(() => {
+      hud.classList.remove('visible', 'fade-out');
+      hud.classList.add('hidden');
+    }, 250);
+  }, 1100);
+}
+
+function zoomEditor(delta) {
+  editorFontSize = Math.max(9, Math.min(38, editorFontSize + delta));
+  if (monacoEditor) {
+    monacoEditor.updateOptions({
+      fontSize: editorFontSize,
+      lineHeight: Math.round(editorFontSize * 1.5)
+    });
+  }
+  showZoomHUD(`Editor Zoom: ${editorFontSize}px (${Math.round((editorFontSize / 13) * 100)}%)`);
+}
+
+function zoomTerminal(delta) {
+  terminalFontSize = Math.max(9, Math.min(34, terminalFontSize + (delta * 0.8)));
+  terminalFontSize = Math.round(terminalFontSize * 10) / 10;
+  const termScreen = document.getElementById('terminal-screen');
+  if (termScreen) {
+    termScreen.style.fontSize = `${terminalFontSize}px`;
+  }
+  showZoomHUD(`Terminal Zoom: ${terminalFontSize}px (${Math.round((terminalFontSize / 12.5) * 100)}%)`);
+}
+
+function resetZoom() {
+  editorFontSize = 13;
+  terminalFontSize = 12.5;
+  if (monacoEditor) {
+    monacoEditor.updateOptions({
+      fontSize: editorFontSize,
+      lineHeight: 20
+    });
+  }
+  const termScreen = document.getElementById('terminal-screen');
+  if (termScreen) {
+    termScreen.style.fontSize = `${terminalFontSize}px`;
+  }
+  showZoomHUD(`Zoom Reset (100%)`);
 }
 
 function setTheme(themeName) {
@@ -659,6 +749,43 @@ function setupCommandPalette() {
       icon: '⏹️',
       keywords: ['reset', 'stop', 'halt', 'restart'],
       action: () => btnStop.click()
+    },
+
+    // --- Zoom & View ---
+    {
+      id: 'view-zoom-in',
+      category: 'View',
+      title: 'Zoom In (Editor & Terminal)',
+      detail: 'Increase font size (or Ctrl + Scroll Wheel Up)',
+      icon: '🔍',
+      shortcut: 'Ctrl + Wheel ↑',
+      keywords: ['zoom', 'in', 'enlarge', 'font', 'bigger', 'scale'],
+      action: () => {
+        zoomEditor(1);
+        zoomTerminal(1);
+      }
+    },
+    {
+      id: 'view-zoom-out',
+      category: 'View',
+      title: 'Zoom Out (Editor & Terminal)',
+      detail: 'Decrease font size (or Ctrl + Scroll Wheel Down)',
+      icon: '🔍',
+      shortcut: 'Ctrl + Wheel ↓',
+      keywords: ['zoom', 'out', 'shrink', 'font', 'smaller', 'scale'],
+      action: () => {
+        zoomEditor(-1);
+        zoomTerminal(-1);
+      }
+    },
+    {
+      id: 'view-zoom-reset',
+      category: 'View',
+      title: 'Reset Zoom to 100%',
+      detail: 'Restore default font sizes (Editor 13px, Terminal 12.5px)',
+      icon: '↺',
+      keywords: ['zoom', 'reset', 'default', '100%'],
+      action: () => resetZoom()
     },
 
     // --- Tools & Cloud ---
