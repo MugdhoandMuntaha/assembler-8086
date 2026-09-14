@@ -234,7 +234,11 @@ function initMonacoEditor() {
     scrollBeyondLastLine: false,
     wordWrap: 'off',
     renderLineHighlight: 'all',
-    bracketPairColorization: { enabled: true }
+    bracketPairColorization: { enabled: true },
+    cursorBlinking: 'smooth',
+    cursorSmoothCaretAnimation: 'on',
+    cursorWidth: 3,
+    cursorStyle: 'line'
   });
 
   // Re-layout on resize
@@ -634,10 +638,12 @@ function setupWindowActions() {
           document.body.style.userSelect = '';
           window.removeEventListener('pointermove', onPointerMove);
           window.removeEventListener('pointerup', onPointerUp);
+          window.removeEventListener('pointercancel', onPointerUp);
         };
 
         window.addEventListener('pointermove', onPointerMove);
         window.addEventListener('pointerup', onPointerUp);
+        window.addEventListener('pointercancel', onPointerUp);
       });
     }
   });

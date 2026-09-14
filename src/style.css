@@ -237,6 +237,83 @@ body.theme-light .terminal-inline-buffer {
   color: #0284c7;
 }
 
+/* ==========================================================================
+   High-Contrast Mouse Pointer & Caret System for Light Mode
+   Prevents invisible or washed-out mouse pointers and carets on white backgrounds
+   ========================================================================== */
+
+/* 1. Default Arrow Mouse Pointer (Crisp dark body with pure white outer contour) */
+body.theme-light {
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath d='M4 2 L4 20 L8.8 15.6 L13 23 L16 21.5 L11.8 14.2 L18.5 14.2 Z' fill='%230f172a' stroke='%23ffffff' stroke-width='1.5' stroke-linejoin='round'/%3E%3C/svg%3E") 0 0, default;
+}
+
+/* 2. Hand Pointer for clickable controls, buttons, selects, and links */
+body.theme-light button,
+body.theme-light select,
+body.theme-light a,
+body.theme-light .btn,
+body.theme-light .cpu-tab-btn,
+body.theme-light .fmt-btn,
+body.theme-light .panel-action-btn,
+body.theme-light .gh-tab,
+body.theme-light .gh-close-btn,
+body.theme-light .flag-chip,
+body.theme-light .phase-chip,
+body.theme-light [role="button"] {
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath d='M9 2 C7.9 2 7 2.9 7 4 L7 11.5 L5.8 10.4 C5 9.7 3.8 9.8 3.2 10.6 C2.6 11.4 2.8 12.5 3.5 13.1 L8.5 17.5 C9.8 18.6 11.4 19.2 13 19.2 L16.5 19.2 C19.5 19.2 22 16.7 22 13.7 L22 9.8 C22 8.7 21.1 7.8 20 7.8 C19.7 7.8 19.5 7.9 19.2 8 C18.9 7.1 18 6.5 17 6.5 C16.6 6.5 16.3 6.6 16 6.7 C15.6 5.8 14.8 5.2 13.8 5.2 C13.5 5.2 13.2 5.3 13 5.4 L13 4 C13 2.9 12.1 2 11 2 C10.4 2 9.9 2.2 9.6 2.6 C9.3 2.2 8.7 2 8 2 Z' fill='%230f172a' stroke='%23ffffff' stroke-width='1.5' stroke-linejoin='round'/%3E%3C/svg%3E") 9 2, pointer !important;
+}
+
+/* 3. Text I-Beam Mouse Pointer (Bold dual-tone dark body + electric blue center + white halo) */
+body.theme-light .terminal-wrapper,
+body.theme-light .terminal-screen,
+body.theme-light .monaco-editor,
+body.theme-light .monaco-editor .view-lines,
+body.theme-light .monaco-editor .view-line,
+body.theme-light .monaco-editor .lines-content,
+body.theme-light .monaco-editor .monaco-mouse-cursor-text,
+body.theme-light input[type="text"],
+body.theme-light input[type="password"],
+body.theme-light textarea {
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath d='M7 3h10v2.5h-3.5v13H17V21H7v-2.5h3.5v-13H7V3z' fill='%23ffffff' stroke='%230f172a' stroke-width='2.5' stroke-linejoin='round'/%3E%3Cpath d='M8 4h8v1.5h-2.75v13H16V20H8v-1.5h2.75v-13H8V4z' fill='%230f172a'/%3E%3Cline x1='12' y1='6' x2='12' y2='18' stroke='%230284c7' stroke-width='1.5'/%3E%3C/svg%3E") 12 12, text !important;
+}
+
+/* 4. Panel Header Drag & Floating Move Pointers */
+body.theme-light .panel-header {
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath d='M10 3a2 2 0 0 0-2 2v6.5l-1.3-.9a2 2 0 0 0-2.7.3 2 2 0 0 0 .3 2.7l5.2 4.4c1.2 1 2.8 1.6 4.4 1.6h3.4a5.9 5.9 0 0 0 5.9-5.9v-3.8a2 2 0 0 0-2-2 2 2 0 0 0-2 2v-.9a2 2 0 0 0-2-2 2 2 0 0 0-2 2v-.9a2 2 0 0 0-2-2 2 2 0 0 0-2 2V5a2 2 0 0 0-2-2z' fill='%230f172a' stroke='%23ffffff' stroke-width='1.5' stroke-linejoin='round'/%3E%3C/svg%3E") 12 12, grab !important;
+}
+
+body.theme-light .panel-header:active,
+body.theme-light.is-dock-dragging {
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath d='M12 2a2 2 0 0 0-2 2v5a2 2 0 0 0-2-2 2 2 0 0 0-2 2v1a2 2 0 0 0-2-2 2 2 0 0 0-2 2v6c0 4.4 3.6 8 8 8s8-3.6 8-8V8a2 2 0 0 0-2-2 2 2 0 0 0-2 2v-4a2 2 0 0 0-2-2z' fill='%230f172a' stroke='%23ffffff' stroke-width='1.5' stroke-linejoin='round'/%3E%3C/svg%3E") 12 12, grabbing !important;
+}
+
+/* 5. Splitter Resize Pointers */
+body.theme-light .dock-resizer-row {
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath d='M8 7l-5 5 5 5v-4h8v4l5-5-5-5v4H8V7z' fill='%230f172a' stroke='%23ffffff' stroke-width='1.5' stroke-linejoin='round'/%3E%3C/svg%3E") 12 12, col-resize !important;
+}
+
+body.theme-light .dock-resizer-col {
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath d='M7 8l5-5 5 5h-4v8h4l-5 5-5-5h4V8H7z' fill='%230f172a' stroke='%23ffffff' stroke-width='1.5' stroke-linejoin='round'/%3E%3C/svg%3E") 12 12, row-resize !important;
+}
+
+/* 6. Monaco Editor Text Caret / Blinking Cursor in Light Mode */
+body.theme-light .monaco-editor .cursors-layer .cursor {
+  background-color: #0284c7 !important;
+  border-color: #0284c7 !important;
+  width: 3px !important;
+  visibility: inherit !important;
+  box-shadow: 0 0 4px rgba(2, 132, 199, 0.6) !important;
+}
+
+/* 7. Force color adjustments under OS high contrast themes */
+@media (forced-colors: active) {
+  body.theme-light .monaco-editor .cursors-layer .cursor {
+    forced-color-adjust: none;
+    background-color: #0284c7 !important;
+    border-color: #0284c7 !important;
+  }
+}
+
 body.theme-amber {
   --accent-cyan: #fbbf24;
   --accent-cyan-glow: rgba(251, 191, 36, 0.3);
