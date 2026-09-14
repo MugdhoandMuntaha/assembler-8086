@@ -47,10 +47,11 @@ export const PRESETS = {
 };
 
 export class DockManager {
-  constructor(container, panelsMap, onLayoutChange) {
+  constructor(container, panelsMap, onLayoutChange, onUserDock) {
     this.container = container;
     this.panelsMap = panelsMap; // id -> HTMLElement
     this.onLayoutChange = onLayoutChange;
+    this.onUserDock = onUserDock;
     this.tree = JSON.parse(JSON.stringify(PRESETS.VSCODE)); // Default to VS Code layout
 
     this.activeDrag = null;
@@ -82,6 +83,8 @@ export class DockManager {
       if (!header) continue;
 
       header.addEventListener('pointerdown', (e) => {
+        // Only trigger drag on primary (left) button
+        if (e.button !== 0) return;
         // Skip drag if clicking action buttons or inputs or in floating mode
         if (e.target.closest('button') || e.target.closest('input') || e.target.closest('select')) return;
         if (panel.classList.contains('is-floating') || panel.classList.contains('is-maximized')) return;
@@ -101,6 +104,10 @@ export class DockManager {
     };
 
     const preview = this.dropOverlay.querySelector('.dock-zone-preview');
+    const header = this.panelsMap[panelId]?.querySelector('.panel-header');
+    try {
+      header?.setPointerCapture(startEvent.pointerId);
+    } catch (_) {}
 
     const onPointerMove = (e) => {
       if (!this.activeDrag) return;
@@ -108,28 +115,31 @@ export class DockManager {
       const dist = Math.hypot(e.clientX - this.activeDrag.startX, e.clientY - this.activeDrag.startY);
       if (dist > 8 && !this.activeDrag.hasMoved) {
         this.activeDrag.hasMoved = true;
-        this.dropOverlay.style.display = 'block';
         document.body.classList.add('is-dock-dragging');
+        if (this.panelsMap[panelId]) {
+          this.panelsMap[panelId].classList.add('is-dock-source');
+        }
       }
 
       if (!this.activeDrag.hasMoved) return;
 
       // Find panel under pointer (other than dragged panel)
-      this.dropOverlay.style.pointerEvents = 'none';
       const elBelow = document.elementFromPoint(e.clientX, e.clientY);
-      this.dropOverlay.style.pointerEvents = 'all';
-
       const targetPanel = elBelow ? elBelow.closest('.panel') : null;
 
       if (targetPanel && targetPanel.id !== panelId && !targetPanel.classList.contains('is-floating')) {
         const rect = targetPanel.getBoundingClientRect();
+        this.dropOverlay.style.display = 'block';
         this.dropOverlay.style.top = `${rect.top}px`;
         this.dropOverlay.style.left = `${rect.left}px`;
         this.dropOverlay.style.width = `${rect.width}px`;
         this.dropOverlay.style.height = `${rect.height}px`;
 
         // Calculate relative position within target panel
-      const distTop = relY;
+        const relX = Math.max(0, Math.min(1, (e.clientX - rect.left) / (rect.width || 1)));
+        const relY = Math.max(0, Math.min(1, (e.clientY - rect.top) / (rect.height || 1)));
+
+        const distTop = relY;
         const distBottom = 1 - relY;
         const distLeft = relX;
         const distRight = 1 - relX;
@@ -161,36 +171,59 @@ export class DockManager {
         });
       } else {
         this.currentDropTarget = null;
+        this.dropOverlay.style.display = 'none';
         preview.style.display = 'none';
         this.dropOverlay.querySelectorAll('.dock-zone').forEach(z => z.classList.remove('active'));
       }
     };
 
-    const onPointerUp = () => {
+    const cleanup = () => {
       document.body.classList.remove('is-dock-dragging');
       this.dropOverlay.style.display = 'none';
       preview.style.display = 'none';
+      this.dropOverlay.querySelectorAll('.dock-zone').forEach(z => z.classList.remove('active'));
 
       if (this.panelsMap[panelId]) {
         this.panelsMap[panelId].classList.remove('is-dock-source');
       }
 
-      if (this.activeDrag && this.activeDrag.hasMoved && this.currentDropTarget) {
-        this.dockPanel(this.activeDrag.panelId, this.currentDropTarget.targetId, this.currentDropTarget.position);
-      }
+      try {
+        if (header?.hasPointerCapture(startEvent.pointerId)) {
+          header.releasePointerCapture(startEvent.pointerId);
+        }
+      } catch (_) {}
+
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointerup', onPointerUp);
+      window.removeEventListener('keydown', onKeyDown);
+    };
+
+    const onPointerUp = () => {
+      const dropTarget = this.currentDropTarget;
+      const hadMoved = this.activeDrag?.hasMoved;
+      const dragPanelId = this.activeDrag?.panelId;
+
+      cleanup();
 
       this.activeDrag = null;
       this.currentDropTarget = null;
-      window.removeEventListener('pointermove', onPointerMove);
-      window.removeEventListener('pointerup', onPointerUp);
+
+      if (hadMoved && dropTarget && dragPanelId) {
+        this.dockPanel(dragPanelId, dropTarget.targetId, dropTarget.position);
+      }
     };
 
-    if (this.panelsMap[panelId]) {
-      this.panelsMap[panelId].classList.add('is-dock-source');
-    }
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        cleanup();
+        this.activeDrag = null;
+        this.currentDropTarget = null;
+      }
+    };
 
     window.addEventListener('pointermove', onPointerMove);
     window.addEventListener('pointerup', onPointerUp);
+    window.addEventListener('keydown', onKeyDown);
   }
 
   // Move sourcePanelId to position relative to targetPanelId
@@ -207,7 +240,18 @@ export class DockManager {
 
     // 3. Re-render layout
     this.render();
-    if (this.onLayoutChange) this.onLayoutChange();
+    if (this.onLayoutChange) {
+      this.onLayoutChange();
+      if (typeof requestAnimationFrame === 'function') {
+        requestAnimationFrame(() => {
+          if (this.onLayoutChange) this.onLayoutChange();
+        });
+      }
+      setTimeout(() => {
+        if (this.onLayoutChange) this.onLayoutChange();
+      }, 100);
+    }
+    if (this.onUserDock) this.onUserDock();
   }
 
   removeNode(node, panelId) {
@@ -230,6 +274,17 @@ export class DockManager {
 
     // Clean children first
     node.children = node.children.map(c => this.cleanTree(c)).filter(Boolean);
+
+    // Flatten nested splits with same direction
+    const flattened = [];
+    for (const child of node.children) {
+      if (child.type === 'split' && child.direction === node.direction) {
+        flattened.push(...child.children);
+      } else {
+        flattened.push(child);
+      }
+    }
+    node.children = flattened;
 
     if (node.children.length === 0) {
       return null;
@@ -281,7 +336,14 @@ export class DockManager {
     if (PRESETS[presetKey]) {
       this.tree = JSON.parse(JSON.stringify(PRESETS[presetKey]));
       this.render();
-      if (this.onLayoutChange) this.onLayoutChange();
+      if (this.onLayoutChange) {
+        this.onLayoutChange();
+        if (typeof requestAnimationFrame === 'function') {
+          requestAnimationFrame(() => {
+            if (this.onLayoutChange) this.onLayoutChange();
+          });
+        }
+      }
     }
   }
 
@@ -343,10 +405,15 @@ export class DockManager {
       if (!prev || !next) return;
 
       gutter.addEventListener('pointerdown', (e) => {
+        if (e.button !== 0) return;
         e.preventDefault();
         gutter.classList.add('is-dragging');
         document.body.style.cursor = isCol ? 'row-resize' : 'col-resize';
         document.body.style.userSelect = 'none';
+
+        try {
+          gutter.setPointerCapture(e.pointerId);
+        } catch (_) {}
 
         const startCoord = isCol ? e.clientY : e.clientX;
         const prevSize = isCol ? prev.getBoundingClientRect().height : prev.getBoundingClientRect().width;
@@ -366,6 +433,11 @@ export class DockManager {
         };
 
         const onPointerUp = () => {
+          try {
+            if (gutter.hasPointerCapture(e.pointerId)) {
+              gutter.releasePointerCapture(e.pointerId);
+            }
+          } catch (_) {}
           gutter.classList.remove('is-dragging');
           document.body.style.cursor = '';
           document.body.style.userSelect = '';
