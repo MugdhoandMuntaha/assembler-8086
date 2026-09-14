@@ -6,12 +6,10 @@ import { CPU, CPU_STATE } from './emulator/cpu.js';
 import { Terminal } from './components/terminal.js';
 import { registerAssemblyIntel } from './editor/intel.js';
 import { DockManager } from './layout/dockManager.js';
-import { PipelineAnimator } from './components/pipelineAnimator.js';
 import { GitHubModal } from './components/githubModal.js';
 
 let dockManager = null;
 let activePresetBtnSetter = null;
-let pipelineAnimator = null;
 let githubModal = null;
 
 // Setup Monaco Environment
@@ -203,12 +201,6 @@ function init() {
   setupWindowActions();
   assembleCode();
 
-  // Initialize 8086 Architecture & Pipeline Visualizer
-  const pipelineContainer = document.getElementById('cpu-view-pipeline');
-  if (pipelineContainer) {
-    pipelineAnimator = new PipelineAnimator(pipelineContainer, cpu);
-  }
-
   // Initialize GitHub Export & Push Modal
   githubModal = new GitHubModal(() => {
     return monacoEditor ? monacoEditor.getValue() : DEFAULT_CODE;
@@ -306,54 +298,6 @@ function setupEventListeners() {
   // Memory Jump
   btnMemJump.addEventListener('click', renderMemoryTable);
 
-  // CPU Panel View Switcher (Registers & RAM vs 8086 Architecture EU/BIU)
-  const tabRegs = document.getElementById('btn-tab-registers');
-  const tabPipe = document.getElementById('btn-tab-pipeline');
-  const viewRegs = document.getElementById('cpu-view-registers');
-  const viewPipe = document.getElementById('cpu-view-pipeline');
-  const formatToggle = document.getElementById('reg-format-toggle');
-  const cpuPanelTitle = document.getElementById('cpu-panel-title-text');
-  const btnToggleArch = document.getElementById('btn-toggle-pipeline-toolbar');
-
-  function switchCpuView(view) {
-    if (view === 'pipeline') {
-      if (tabRegs) tabRegs.classList.remove('active');
-      if (tabPipe) tabPipe.classList.add('active');
-      if (viewRegs) viewRegs.classList.add('hidden');
-      if (viewPipe) viewPipe.classList.remove('hidden');
-      if (formatToggle) formatToggle.style.display = 'none';
-      if (cpuPanelTitle) cpuPanelTitle.textContent = '8086 Architecture (EU / BIU)';
-      if (btnToggleArch) {
-        btnToggleArch.classList.remove('btn-secondary');
-        btnToggleArch.classList.add('btn-primary');
-      }
-      if (pipelineAnimator) pipelineAnimator.update();
-    } else {
-      if (tabPipe) tabPipe.classList.remove('active');
-      if (tabRegs) tabRegs.classList.add('active');
-      if (viewPipe) viewPipe.classList.add('hidden');
-      if (viewRegs) viewRegs.classList.remove('hidden');
-      if (formatToggle) formatToggle.style.display = 'flex';
-      if (cpuPanelTitle) cpuPanelTitle.textContent = 'CPU Registers & Memory';
-      if (btnToggleArch) {
-        btnToggleArch.classList.remove('btn-primary');
-        btnToggleArch.classList.add('btn-secondary');
-      }
-    }
-  }
-
-  if (tabRegs && tabPipe) {
-    tabRegs.addEventListener('click', () => switchCpuView('registers'));
-    tabPipe.addEventListener('click', () => switchCpuView('pipeline'));
-  }
-
-  if (btnToggleArch) {
-    btnToggleArch.addEventListener('click', () => {
-      const isPipe = tabPipe && tabPipe.classList.contains('active');
-      switchCpuView(isPipe ? 'registers' : 'pipeline');
-    });
-  }
-
   // GitHub Export / Push Button
   const btnOpenGithub = document.getElementById('btn-open-github');
   if (btnOpenGithub) {
@@ -414,9 +358,6 @@ function renderUI() {
   renderFlags();
   renderMemoryTable();
   renderExecutionPointer();
-  if (pipelineAnimator) {
-    pipelineAnimator.update();
-  }
 }
 
 function renderStatusBadge() {

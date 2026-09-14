@@ -12,81 +12,103 @@
 <body class="theme-light">
   <div id="app">
     <!-- Top Control Header -->
-    <header class="app-header">
+    <!-- Top Control Header: Futuristic Minimal Cyber Deck -->
+    <header class="app-header cyber-header">
+      <!-- Left: Cyber Brand & Core Status -->
       <div class="logo-group">
-        <div class="cpu-chip-icon">
-          <span>8086</span>
+        <div class="cpu-chip-icon cyber-chip" title="Intel 8086 Microprocessor Core">
+          <span class="chip-dot"></span>
+          <span class="chip-text">8086</span>
         </div>
         <div class="brand">
-          <h1>emu8086</h1>
+          <h1>emu<span class="brand-accent">8086</span></h1>
+          <span class="brand-badge">x86</span>
         </div>
       </div>
 
+      <!-- Center & Right: Precision Cyber Control Pods -->
       <div class="toolbar">
-        <div class="tool-group controls-group">
-          <button id="btn-assemble" class="btn btn-secondary" title="Assemble & Reset CPU">
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2v6h-6M3 12a9 9 0 0 1 15-6.7L21 8M3 22v-6h6M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
-            Assemble
+        <!-- Execution Control Capsule -->
+        <div class="cyber-deck-dock" title="CPU Execution Deck">
+          <button id="btn-assemble" class="deck-btn deck-assemble" title="Assemble & Sync Program">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 2v6h-6M3 12a9 9 0 0 1 15-6.7L21 8M3 22v-6h6M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
+            <span>Assemble</span>
           </button>
-          <button id="btn-run" class="btn btn-primary" title="Run Program (F5)">
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-            Run
+          
+          <button id="btn-run" class="deck-btn deck-run" title="Run Program (F5)">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor"><polygon points="6 4 19 12 6 20 6 4"/></svg>
+            <span>Run</span>
           </button>
-          <button id="btn-step" class="btn btn-accent" title="Step One Instruction (F8)">
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19" stroke="currentColor" stroke-width="3"/></svg>
-            Step
+
+          <button id="btn-step" class="deck-btn deck-step" title="Single Cycle Step (F8)">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor"><polygon points="5 5 15 12 5 19 5 5"/><line x1="18" y1="5" x2="18" y2="19" stroke="currentColor" stroke-width="2.5"/></svg>
+            <span>Step</span>
           </button>
-          <button id="btn-pause" class="btn btn-warning" title="Pause Execution">
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
-            Pause
+
+          <button id="btn-pause" class="deck-btn deck-pause" title="Pause Execution">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor"><rect x="6" y="5" width="3.5" height="14" rx="1"/><rect x="14.5" y="5" width="3.5" height="14" rx="1"/></svg>
+            <span>Pause</span>
           </button>
-          <button id="btn-stop" class="btn btn-danger" title="Stop & Reset">
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><rect x="5" y="5" width="14" height="14"/></svg>
-            Reset
+
+          <button id="btn-stop" class="deck-btn deck-stop" title="Reset Registers & Halt">
+            <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><rect x="5" y="5" width="14" height="14" rx="1.5"/></svg>
+            <span>Reset</span>
           </button>
         </div>
 
-        <div class="divider"></div>
+        <div class="cyber-divider"></div>
 
-        <div class="tool-group speed-group">
-          <label for="speed-range">Speed:</label>
-          <input type="range" id="speed-range" min="0" max="500" step="10" value="100">
-          <span id="speed-label" class="mono">100ms</span>
+        <!-- Clock Rate / Speed Capsule -->
+        <div class="cyber-speed-dock" title="Execution Clock Delay">
+          <svg class="speed-icon" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><polyline points="12 6 12 12 15 15"/></svg>
+          <input type="range" id="speed-range" min="0" max="500" step="10" value="100" class="cyber-range">
+          <span id="speed-label" class="mono cyber-speed-badge">100ms</span>
         </div>
 
-        <div class="divider"></div>
+        <div class="cyber-divider"></div>
 
-        <div class="tool-group layout-group">
-          <label>Layout:</label>
-          <button id="btn-layout-vscode" class="btn btn-xs btn-primary" title="VS Code Layout (Terminal at bottom of Code Editor, CPU on right)">VS Code</button>
-          <button id="btn-layout-columns" class="btn btn-xs btn-secondary" title="3 Columns Layout">Columns</button>
-          <button id="btn-layout-bottom" class="btn btn-xs btn-secondary" title="Bottom Terminal Layout">Bottom Term</button>
-          <button id="btn-float-all" class="btn btn-xs btn-secondary" title="Float All Windows">Float All</button>
+        <!-- Segmented Futuristic Layout Dock -->
+        <div class="cyber-segmented-dock" role="tablist">
+          <button id="btn-layout-vscode" class="seg-tab btn-primary" title="VS Code Layout (IDE)">
+            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="15" y1="3" x2="15" y2="15"/></svg>
+            <span>IDE</span>
+          </button>
+          <button id="btn-layout-columns" class="seg-tab btn-secondary" title="3-Column Layout">
+            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/></svg>
+            <span>Cols</span>
+          </button>
+          <button id="btn-layout-bottom" class="seg-tab btn-secondary" title="Bottom Terminal Layout">
+            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="14" x2="21" y2="14"/></svg>
+            <span>Term</span>
+          </button>
+          <button id="btn-float-all" class="seg-tab btn-secondary" title="Floating Windows Mode">
+            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="11" height="11" rx="1.5"/><rect x="10" y="10" width="11" height="11" rx="1.5"/></svg>
+            <span>Float</span>
+          </button>
         </div>
 
-        <div class="divider"></div>
+        <div class="cyber-divider"></div>
 
-        <div class="tool-group">
-          <select id="theme-select" class="select-input small">
-            <option value="theme-light" selected>Light Theme</option>
-            <option value="theme-cyber">Cyber Dark</option>
-            <option value="theme-amber">CRT Amber</option>
-            <option value="theme-matrix">Matrix Green</option>
+        <!-- Futuristic Cyber Theme Selector -->
+        <div class="cyber-theme-dock">
+          <svg class="theme-icon" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+          <select id="theme-select" class="cyber-select" title="Palette & CRT Phosphor Theme">
+            <option value="theme-light" selected>Light</option>
+            <option value="theme-cyber">Cyber</option>
+            <option value="theme-amber">Amber</option>
+            <option value="theme-matrix">Matrix</option>
           </select>
         </div>
 
-        <div class="divider"></div>
+        <div class="cyber-divider"></div>
 
-        <div class="tool-group">
-          <button id="btn-toggle-pipeline-toolbar" class="btn btn-xs btn-secondary btn-pipeline-tool" title="Toggle 8086 Architecture & Pipeline Visualizer (EU / BIU)">
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-            Architecture (EU/BIU)
-          </button>
-          <button id="btn-open-github" class="btn btn-xs btn-github" title="Push code or commit to GitHub / Gist">
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+        <!-- Action Tools: GitHub -->
+        <div class="cyber-actions-dock">
+          <button id="btn-open-github" class="cyber-action-btn action-github" title="Push code or commit to GitHub / Gist">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor">
               <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
             </svg>
-            Push to GitHub
+            <span>Push</span>
           </button>
         </div>
       </div>
@@ -131,10 +153,6 @@
             <span id="cpu-panel-title-text">CPU Registers & Memory</span>
           </div>
           <div class="panel-header-right">
-            <div class="cpu-tab-switcher">
-              <button id="btn-tab-registers" class="cpu-tab-btn active" title="Show Registers, Flags, and RAM">Registers & RAM</button>
-              <button id="btn-tab-pipeline" class="cpu-tab-btn" title="Show 8086 Bus Interface Unit (BIU) & Execution Unit (EU) Architecture">⚡ Architecture (EU/BIU)</button>
-            </div>
             <div class="format-toggle" id="reg-format-toggle">
               <button class="fmt-btn active" data-fmt="HEX">HEX</button>
               <button class="fmt-btn" data-fmt="DEC">DEC</button>
@@ -151,7 +169,7 @@
           </div>
         </div>
 
-        <div class="cpu-body" id="cpu-view-registers">
+        <div class="cpu-body">
           <!-- Registers Grid -->
           <div class="registers-section">
             <h3 class="section-title">16-bit / 8-bit Registers</h3>
@@ -302,11 +320,6 @@
               </table>
             </div>
           </div>
-        </div>
-
-        <!-- Architecture & Pipeline Animator (EU / BIU) -->
-        <div class="cpu-body hidden" id="cpu-view-pipeline">
-          <!-- Populated dynamically by PipelineAnimator -->
         </div>
       </section>
 

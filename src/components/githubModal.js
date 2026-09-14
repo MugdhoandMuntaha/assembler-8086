@@ -129,7 +129,7 @@ export class GitHubModal {
 git add src/ index.html .gitignore package.json package-lock.json
 
 # 2. Commit your latest updates
-git commit -m "feat: 8086 microarchitecture pipeline animator and DOS interrupt hover docs"
+git commit -m "feat: enhance emu8086 emulator with minimal futuristic UI"
 
 # 3. Push to GitHub remote main branch
 git push origin main</pre>
@@ -142,7 +142,7 @@ git push origin main</pre>
             <div class="gh-remote-info">
               <div class="remote-row">
                 <span class="lbl">Remote URL:</span>
-                <span class="mono val">https://github.com/muntaha-ux/emu8086.git</span>
+                <span class="mono val">https://github.com/MugdhoandMuntaha/assembler-8086.git</span>
               </div>
               <div class="remote-row">
                 <span class="lbl">Target Branch:</span>
