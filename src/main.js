@@ -7,10 +7,12 @@ import { Terminal } from './components/terminal.js';
 import { registerAssemblyIntel } from './editor/intel.js';
 import { DockManager } from './layout/dockManager.js';
 import { GitHubModal } from './components/githubModal.js';
+import { GoogleDriveModal } from './components/googleDriveModal.js';
 
 let dockManager = null;
 let activePresetBtnSetter = null;
 let githubModal = null;
+let googleDriveModal = null;
 
 // Setup Monaco Environment
 self.MonacoEnvironment = {
@@ -206,6 +208,11 @@ function init() {
     return monacoEditor ? monacoEditor.getValue() : DEFAULT_CODE;
   });
 
+  // Initialize Google Drive Integration Modal
+  googleDriveModal = new GoogleDriveModal(() => {
+    return monacoEditor ? monacoEditor.getValue() : DEFAULT_CODE;
+  });
+
   cpu.onStateChange = renderUI;
   renderUI();
 }
@@ -298,6 +305,14 @@ function setupEventListeners() {
   // Memory Jump
   btnMemJump.addEventListener('click', renderMemoryTable);
 
+  // Google Drive Cloud Save Button
+  const btnOpenGDrive = document.getElementById('btn-open-gdrive');
+  if (btnOpenGDrive) {
+    btnOpenGDrive.addEventListener('click', () => {
+      if (googleDriveModal) googleDriveModal.open();
+    });
+  }
+
   // GitHub Export / Push Button
   const btnOpenGithub = document.getElementById('btn-open-github');
   if (btnOpenGithub) {
@@ -314,6 +329,9 @@ function setupEventListeners() {
     } else if (e.key === 'F8') {
       e.preventDefault();
       btnStep.click();
+    } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+      e.preventDefault();
+      if (googleDriveModal) googleDriveModal.open();
     }
   });
 }

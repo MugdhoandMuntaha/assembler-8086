@@ -42,6 +42,15 @@ An advanced, browser-based Intel 8086 microprocessor simulation environment buil
 
 ---
 
+### 5. 📁 Google Drive Cloud Save & Synchronization
+- **Google Identity Services (GIS) OAuth 2.0**: Secure in-browser authentication with Google account using the least-privilege `drive.file` scope.
+- **Direct Cloud Upload**: Multipart upload to Google Drive v3 REST API saving active 8086 assembly source code directly to Google Drive.
+- **Revisions & Versioning**: Option to update/overwrite existing files or save new timestamped versions.
+- **Recent Saves Manager**: Quick history list with direct 1-click "Open in Google Drive" links and file selection for overwriting.
+- **Built-in Setup Guide**: Guided 3-minute instructions on generating an OAuth 2.0 Client ID in Google Cloud Console.
+
+---
+
 ## 🛠️ Getting Started
 
 ### Prerequisites
