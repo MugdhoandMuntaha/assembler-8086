@@ -2,10 +2,10 @@
  * Interactive VS Code Style DOS Terminal Controller
  * 
  * Features:
- * - Crisp, clean VS Code integrated terminal styling
- * - Minimal modern floating input popup widget for DOS INT 21H input interrupts (AH=01H, AH=0AH)
- * - Zero unnecessary clutter or verbose startup text
- * - Dual-input capture: sleek focused popup + direct inline terminal keyboard capture
+ * - Direct inline keyboard typing at cursor for DOS INT 21H input interrupts (AH=01H, AH=0AH)
+ * - Zero intrusive floating popups or external prompts
+ * - Immediate keyboard auto-focus and click-to-focus support
+ * - Clean terminal styling matching VS Code integrated terminal
  */
 
 export class Terminal {
@@ -16,9 +16,9 @@ export class Terminal {
     this.isWaitingInput = false;
     this.isWaitingLine = false;
     this.lineBuffer = '';
+    this.maxChars = 255;
 
     this.initDOM();
-    this.initPopup();
     this.initListeners();
   }
 
@@ -37,160 +37,205 @@ export class Terminal {
     this.hiddenInput = this.screenElement.querySelector('.terminal-hidden-input');
     this.statusDot = document.getElementById('term-status-dot');
 
-    // Start with a clean, empty screen like VS Code integrated terminal
+    // Start with a clean, empty screen
     this.clear();
-  }
-
-  initPopup() {
-    this.popupEl = document.getElementById('terminal-input-popup');
-    if (!this.popupEl && this.panelElement) {
-      this.popupEl = this.panelElement.querySelector('#terminal-input-popup');
-    }
-
-    if (this.popupEl) {
-      this.popupInput = this.popupEl.querySelector('#terminal-popup-input');
-      this.popupBadge = this.popupEl.querySelector('#popup-mode-badge');
-      this.popupHint = this.popupEl.querySelector('#popup-hint-text');
-      this.popupSubmit = this.popupEl.querySelector('#terminal-popup-submit');
-    }
   }
 
   initListeners() {
     if (!this.screenElement || !this.hiddenInput) return;
 
-    // Clicking terminal focuses input
+    // Clicking terminal focuses inline input
     this.screenElement.addEventListener('pointerdown', () => {
       this.focus();
     });
 
     if (this.panelElement) {
       this.panelElement.addEventListener('pointerdown', (e) => {
-        if (!e.target.closest('button') && !e.target.closest('.panel-header') && !e.target.closest('.terminal-input-popup')) {
+        if (!e.target.closest('button') && !e.target.closest('.panel-header')) {
           this.focus();
         }
       });
     }
 
-    // Keyboard capture on hidden input for direct inline terminal typing
+    // Capture keys on hidden input
     this.hiddenInput.addEventListener('keydown', (e) => {
       this.handleKeyDown(e);
     });
 
+    // Capture keys directly on screen element
     this.screenElement.addEventListener('keydown', (e) => {
-      if (document.activeElement !== this.hiddenInput && document.activeElement !== this.popupInput) {
+      if (document.activeElement !== this.hiddenInput) {
         this.handleKeyDown(e);
       }
     });
 
-    this.hiddenInput.addEventListener('input', () => {
-      this.hiddenInput.value = '';
+    // Forward screen element focus to hiddenInput
+    this.screenElement.addEventListener('focus', () => {
+      if (this.hiddenInput && document.activeElement !== this.hiddenInput) {
+        this.hiddenInput.focus({ preventScroll: true });
+      }
     });
 
-    // Setup input popup listeners
-    if (this.popupInput) {
-      this.popupInput.addEventListener('keydown', (e) => {
-        if (!this.isWaitingInput || !this.inputCallback) return;
+    // Handle mobile virtual keyboard / IME input
+    this.hiddenInput.addEventListener('input', () => {
+      if (!this.isWaitingInput) {
+        this.hiddenInput.value = '';
+        return;
+      }
+      const val = this.hiddenInput.value;
+      this.hiddenInput.value = '';
+      if (!val) return;
 
-        if (e.key === 'F5' || e.key === 'F8' || e.ctrlKey || e.altKey || e.metaKey) {
-          return;
-        }
-
-        if (['Shift', 'Control', 'Alt', 'Meta', 'CapsLock', 'Tab'].includes(e.key)) {
-          return;
-        }
-
+      for (const ch of val) {
         if (!this.isWaitingLine) {
-          // Single character input mode (INT 21H AH=01H / AH=07H / AH=08H)
-          if (e.key.length === 1 || e.key === 'Enter') {
-            e.preventDefault();
-            const char = e.key === 'Enter' ? '\r' : e.key;
-            const cb = this.inputCallback;
-            this.finishInput();
-            cb(char);
-          }
+          const cb = this.inputCallback;
+          this.finishInput();
+          if (cb) cb(ch);
+          break;
         } else {
-          // Buffered string input mode (INT 21H AH=0AH)
-          if (e.key === 'Enter') {
-            e.preventDefault();
-            const line = this.popupInput.value;
+          if (ch === '\n' || ch === '\r') {
+            const line = this.lineBuffer;
             const cb = this.inputCallback;
             this.finishInput();
-            cb(line);
-          } else if (e.key === 'Escape') {
-            e.preventDefault();
-            const cb = this.inputCallback;
-            this.finishInput();
-            cb('');
+            if (cb) cb(line);
+            break;
+          } else {
+            if (!this.maxChars || this.lineBuffer.length < this.maxChars) {
+              this.lineBuffer += ch;
+              if (this.bufferEl) this.bufferEl.textContent = this.lineBuffer;
+              this.scrollToBottom();
+            }
           }
         }
-      });
-    }
+      }
+    });
 
-    if (this.popupSubmit) {
-      this.popupSubmit.addEventListener('click', () => {
-        if (!this.isWaitingInput || !this.inputCallback) return;
+    // Handle paste inline
+    const handlePaste = (e) => {
+      if (!this.isWaitingInput || !this.inputCallback) return;
+      e.preventDefault();
+      const pasteData = (e.clipboardData || window.clipboardData)?.getData('text') || '';
+      if (!pasteData) return;
+
+      if (!this.isWaitingLine) {
+        const char = pasteData.charAt(0);
         const cb = this.inputCallback;
-        const val = this.popupInput ? this.popupInput.value : '';
         this.finishInput();
-        if (!this.isWaitingLine) {
-          cb(val ? val.charAt(0) : '\r');
-        } else {
-          cb(val);
+        if (cb) cb(char);
+      } else {
+        const clean = pasteData.replace(/[\r\n]/g, '');
+        for (const ch of clean) {
+          if (!this.maxChars || this.lineBuffer.length < this.maxChars) {
+            this.lineBuffer += ch;
+          }
         }
-      });
-    }
+        if (this.bufferEl) this.bufferEl.textContent = this.lineBuffer;
+        this.scrollToBottom();
+      }
+    };
+
+    this.hiddenInput.addEventListener('paste', handlePaste);
+    this.screenElement.addEventListener('paste', handlePaste);
+
+    // Global keyboard fallback:
+    // If the terminal is waiting for input and the user starts typing,
+    // route keystrokes directly to the terminal unless typing in Monaco or a modal
+    window.addEventListener('keydown', (e) => {
+      if (!this.isWaitingInput || !this.inputCallback) return;
+
+      const active = document.activeElement;
+      if (active && (
+        active.closest('.monaco-editor') ||
+        active.closest('.modal-overlay:not(.hidden)') ||
+        active.closest('.command-palette-overlay:not(.hidden)') ||
+        (active.tagName === 'INPUT' && active !== this.hiddenInput) ||
+        active.tagName === 'TEXTAREA' ||
+        active.isContentEditable
+      )) {
+        return;
+      }
+
+      if (active !== this.hiddenInput && active !== this.screenElement) {
+        this.focus();
+        this.handleKeyDown(e);
+      }
+    });
   }
 
   focus() {
-    if (this.isWaitingInput && this.popupInput && !this.popupEl?.classList.contains('hidden')) {
-      this.popupInput.focus();
-    } else if (this.hiddenInput) {
+    if (this.hiddenInput) {
       this.hiddenInput.focus({ preventScroll: true });
+    } else if (this.screenElement) {
+      this.screenElement.focus({ preventScroll: true });
     }
   }
 
   handleKeyDown(e) {
     if (!this.isWaitingInput || !this.inputCallback) return;
 
-    if (e.key === 'F5' || e.key === 'F8' || e.ctrlKey || e.altKey || e.metaKey) {
+    // Allow hotkeys to pass through
+    if (e.key === 'F5' || e.key === 'F8' || e.key === 'F1' || ((e.ctrlKey || e.metaKey) && ['p', 'P', 's', 'S'].includes(e.key))) {
       return;
     }
 
-    if (['Shift', 'Control', 'Alt', 'Meta', 'CapsLock', 'Tab'].includes(e.key)) {
+    // Ignore modifier keys alone
+    if (['Shift', 'Control', 'Alt', 'Meta', 'CapsLock'].includes(e.key)) {
       return;
     }
 
     if (!this.isWaitingLine) {
-      // Single character input
-      if (e.key.length === 1 || e.key === 'Enter') {
+      // Single character input mode (INT 21H AH=01H / AH=07H / AH=08H)
+      let char = null;
+      if (e.key === 'Enter') {
+        char = '\r';
+      } else if (e.key === 'Backspace') {
+        char = '\b';
+      } else if (e.key === 'Tab') {
+        char = '\t';
+      } else if (e.key === 'Escape') {
+        char = '\x1b';
+      } else if (e.key.length === 1) {
+        char = e.key;
+      }
+
+      if (char !== null) {
         e.preventDefault();
-        const char = e.key === 'Enter' ? '\r' : e.key;
+        e.stopPropagation();
         const cb = this.inputCallback;
         this.finishInput();
-        cb(char);
+        if (cb) cb(char);
       }
     } else {
-      // Buffered line input
+      // Buffered string input mode (INT 21H AH=0AH)
       if (e.key === 'Enter') {
         e.preventDefault();
+        e.stopPropagation();
         const line = this.lineBuffer;
         const cb = this.inputCallback;
         this.finishInput();
-        cb(line);
+        if (cb) cb(line);
       } else if (e.key === 'Backspace') {
         e.preventDefault();
+        e.stopPropagation();
         if (this.lineBuffer.length > 0) {
           this.lineBuffer = this.lineBuffer.slice(0, -1);
           if (this.bufferEl) this.bufferEl.textContent = this.lineBuffer;
-          if (this.popupInput) this.popupInput.value = this.lineBuffer;
           this.scrollToBottom();
         }
-      } else if (e.key.length === 1) {
+      } else if (e.key === 'Escape') {
         e.preventDefault();
-        this.lineBuffer += e.key;
-        if (this.bufferEl) this.bufferEl.textContent = this.lineBuffer;
-        if (this.popupInput) this.popupInput.value = this.lineBuffer;
+        e.stopPropagation();
+        this.lineBuffer = '';
+        if (this.bufferEl) this.bufferEl.textContent = '';
         this.scrollToBottom();
+      } else if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!this.maxChars || this.lineBuffer.length < this.maxChars) {
+          this.lineBuffer += e.key;
+          if (this.bufferEl) this.bufferEl.textContent = this.lineBuffer;
+          this.scrollToBottom();
+        }
       }
     }
   }
@@ -207,13 +252,6 @@ export class Terminal {
     if (this.statusDot) {
       this.statusDot.classList.remove('waiting');
       this.statusDot.title = 'Terminal Ready';
-    }
-
-    if (this.popupEl) {
-      this.popupEl.classList.add('hidden');
-    }
-    if (this.popupInput) {
-      this.popupInput.value = '';
     }
   }
 
@@ -248,7 +286,19 @@ export class Terminal {
     }
   }
 
+  prepareInlineInput() {
+    if (!this.textEl) return;
+    // If the terminal text ends with a newline right before input, trim trailing newlines
+    this.textEl.textContent = this.textEl.textContent.replace(/[\r\n]+$/, '');
+    
+    // If it ends with ':', ensure there is a space right after the colon
+    if (this.textEl.textContent.endsWith(':')) {
+      this.textEl.textContent += ' ';
+    }
+  }
+
   requestSingleCharInput(callback) {
+    this.prepareInlineInput();
     this.inputCallback = callback;
     this.isWaitingInput = true;
     this.isWaitingLine = false;
@@ -259,35 +309,20 @@ export class Terminal {
 
     if (this.statusDot) {
       this.statusDot.classList.add('waiting');
-      this.statusDot.title = 'Waiting for Single Character Input';
+      this.statusDot.title = 'Waiting for Character Input (type directly in terminal)';
     }
 
-    // Show sleek minimal modern input popup
-    if (!this.popupEl) this.initPopup();
-    if (this.popupEl) {
-      if (this.popupBadge) this.popupBadge.textContent = 'CHAR INPUT (INT 21H, AH=01H)';
-      if (this.popupHint) this.popupHint.textContent = 'Press any key or character to send';
-      if (this.popupInput) {
-        this.popupInput.value = '';
-        this.popupInput.placeholder = 'Press any key...';
-      }
-      this.popupEl.classList.remove('hidden');
-      setTimeout(() => {
-        if (this.popupInput) {
-          this.popupInput.focus();
-        }
-      }, 50);
-    } else {
-      this.focus();
-    }
-
+    this.focus();
+    setTimeout(() => this.focus(), 20);
     this.scrollToBottom();
   }
 
-  requestLineInput(callback) {
+  requestLineInput(callback, maxChars = 255) {
+    this.prepareInlineInput();
     this.inputCallback = callback;
     this.isWaitingInput = true;
     this.isWaitingLine = true;
+    this.maxChars = maxChars;
     this.lineBuffer = '';
     if (this.bufferEl) this.bufferEl.textContent = '';
     if (this.cursorEl) this.cursorEl.classList.add('waiting');
@@ -295,28 +330,11 @@ export class Terminal {
 
     if (this.statusDot) {
       this.statusDot.classList.add('waiting');
-      this.statusDot.title = 'Waiting for Buffered String Input';
+      this.statusDot.title = 'Waiting for String Input (type directly in terminal and press Enter)';
     }
 
-    // Show sleek minimal modern input popup
-    if (!this.popupEl) this.initPopup();
-    if (this.popupEl) {
-      if (this.popupBadge) this.popupBadge.textContent = 'STRING INPUT (INT 21H, AH=0AH)';
-      if (this.popupHint) this.popupHint.textContent = 'Type input string and press Enter';
-      if (this.popupInput) {
-        this.popupInput.value = '';
-        this.popupInput.placeholder = 'Type input and press Enter...';
-      }
-      this.popupEl.classList.remove('hidden');
-      setTimeout(() => {
-        if (this.popupInput) {
-          this.popupInput.focus();
-        }
-      }, 50);
-    } else {
-      this.focus();
-    }
-
+    this.focus();
+    setTimeout(() => this.focus(), 20);
     this.scrollToBottom();
   }
 }

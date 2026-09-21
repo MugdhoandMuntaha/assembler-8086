@@ -519,7 +519,17 @@ export class CPU {
         this.pauseForInput((char) => {
           const charCode = char.charCodeAt(0);
           this.registers.AL = charCode;
-          this.terminal.printChar(char);
+          if (char === '\r') {
+            this.terminal.printChar('\n');
+          } else {
+            this.terminal.printChar(char);
+          }
+        });
+      } else if (ah === 0x07 || ah === 0x08) {
+        // Read character from terminal without echo
+        this.pauseForInput((char) => {
+          const charCode = char.charCodeAt(0);
+          this.registers.AL = charCode;
         });
       } else if (ah === 0x02) {
         // Output character in DL
@@ -528,22 +538,30 @@ export class CPU {
       } else if (ah === 0x09) {
         // Display string at DS:DX ending with '$'
         const dx = this.registers.DX;
-        const str = this.memory.readDosString(this.registers.DS, dx);
+        let maxLen = 0xFFFF;
+        if (this.symbolTable) {
+          const sym = Object.values(this.symbolTable).find(s => s.type === 'var' && s.offset === dx);
+          if (sym && sym.length) {
+            maxLen = sym.length;
+          }
+        }
+        const str = this.memory.readDosString(this.registers.DS, dx, maxLen);
         this.terminal.printString(str);
       } else if (ah === 0x0A) {
         // Buffered String Input at DS:DX
         const bufferAddr = this.registers.DX;
         const maxLen = this.memory.read8(this.registers.DS, bufferAddr);
+        const maxChars = maxLen > 1 ? maxLen - 1 : 255;
 
         this.pauseForLineInput((lineStr) => {
-          const actualLen = Math.min(lineStr.length, maxLen - 1);
+          const actualLen = Math.min(lineStr.length, maxChars);
           this.memory.write8(this.registers.DS, bufferAddr + 1, actualLen);
           for (let i = 0; i < actualLen; i++) {
             this.memory.write8(this.registers.DS, bufferAddr + 2 + i, lineStr.charCodeAt(i));
           }
           this.memory.write8(this.registers.DS, bufferAddr + 2 + actualLen, 0x0D); // CR
           this.terminal.printString(lineStr + '\n');
-        });
+        }, maxChars);
       } else if (ah === 0x4C) {
         // Exit program
         this.state = CPU_STATE.HALTED;
@@ -565,7 +583,7 @@ export class CPU {
     });
   }
 
-  pauseForLineInput(callback) {
+  pauseForLineInput(callback, maxChars = 255) {
     this.state = CPU_STATE.WAITING_FOR_INPUT;
     if (this.timer) clearInterval(this.timer);
 
@@ -575,6 +593,6 @@ export class CPU {
       this.registers.IP++;
       if (this.onStateChange) this.onStateChange();
       this.executeLoop();
-    });
+    }, maxChars);
   }
 }

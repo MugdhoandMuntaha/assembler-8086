@@ -331,7 +331,10 @@ function setupEventListeners() {
   btnAssemble.addEventListener('click', assembleCode);
   btnRun.addEventListener('click', () => {
     if (cpu.state === CPU_STATE.STOPPED || cpu.state === CPU_STATE.ERROR || cpu.state === CPU_STATE.HALTED) {
+      terminal.clear();
       if (assembleCode()) cpu.run();
+    } else if (cpu.state === CPU_STATE.WAITING_FOR_INPUT) {
+      terminal.focus();
     } else {
       cpu.run();
     }

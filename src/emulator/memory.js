@@ -41,14 +41,16 @@ export class Memory {
   }
 
   // Helper for reading a $' terminated DOS string
-  readDosString(segment, offset) {
+  readDosString(segment, offset, maxLen = 0xFFFF) {
     let str = '';
     let currOffset = offset;
-    while (currOffset < 0xFFFF) {
+    let count = 0;
+    while (currOffset < 0xFFFF && count < maxLen) {
       const charCode = this.read8(segment, currOffset);
       if (charCode === 0x24) break; // '$' character
       str += String.fromCharCode(charCode);
       currOffset++;
+      count++;
     }
     return str;
   }

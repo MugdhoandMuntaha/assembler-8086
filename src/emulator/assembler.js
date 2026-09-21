@@ -286,13 +286,16 @@ export class Assembler {
     if (current.trim().length > 0) items.push(current.trim());
 
     for (const item of items) {
-      if ((item.startsWith("'") && item.endsWith("'")) || (item.startsWith('"') && item.endsWith('"'))) {
-        const strContent = item.slice(1, -1);
+      const trimmedItem = item.trim();
+      if ((trimmedItem.startsWith("'") && trimmedItem.endsWith("'")) || (trimmedItem.startsWith('"') && trimmedItem.endsWith('"'))) {
+        const strContent = trimmedItem.slice(1, -1);
         for (let s = 0; s < strContent.length; s++) {
           varValues.push(strContent.charCodeAt(s));
         }
+      } else if (trimmedItem === '?') {
+        varValues.push(0);
       } else {
-        const num = this.parseNumber(item);
+        const num = this.parseNumber(trimmedItem);
         if (num !== null) {
           varValues.push(num);
         }
@@ -375,28 +378,21 @@ export class Assembler {
     let varName = null;
     let size = 1; // default byte
 
-    // Check variable name inclusion e.g. msg + BX
-    for (const name in symbolTable) {
-      if (symbolTable[name].type === 'var' && upper.includes(name)) {
-        varName = name;
-        displacement += symbolTable[name].offset;
-        size = symbolTable[name].size;
-        break;
-      }
-    }
-
-    const tokens = upper.replace(/\+/g, ' + ').replace(/\-/g, ' - ').split(/\s+/);
+    const tokens = upper.replace(/\+/g, ' + ').replace(/\-/g, ' - ').split(/\s+/).filter(Boolean);
     let sign = 1;
 
     for (const tok of tokens) {
       if (tok === '+') { sign = 1; continue; }
       if (tok === '-') { sign = -1; continue; }
-      if (varName && tok === varName) continue;
 
       if (['BX', 'BP'].includes(tok)) {
         baseReg = tok;
       } else if (['SI', 'DI'].includes(tok)) {
         indexReg = tok;
+      } else if (symbolTable[tok] && symbolTable[tok].type === 'var') {
+        varName = tok;
+        displacement += sign * symbolTable[tok].offset;
+        size = symbolTable[tok].size;
       } else {
         const val = this.parseNumber(tok);
         if (val !== null) {
